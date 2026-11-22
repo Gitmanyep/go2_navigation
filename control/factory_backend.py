@@ -5,6 +5,9 @@ import time
 
 
 class StateFeedback:
+    # Conservative Go2 test interlock, not a firmware readiness specification.
+    MIN_TEST_BODY_HEIGHT_M = .20
+
     def __init__(self, clock=time.monotonic):
         self.clock = clock
         self.lock = threading.Lock()
@@ -30,6 +33,13 @@ class StateFeedback:
             raise RuntimeError('机身状态未收到或接收超时；保持停止')
         if not all(math.isfinite(x) for x in sample['velocity']+[sample['body_height']]):
             raise RuntimeError('机身状态包含非有限值；保持停止')
+        return sample
+
+    def require_test_height(self):
+        sample = self.require_fresh()
+        if sample['body_height'] < self.MIN_TEST_BODY_HEIGHT_M:
+            raise RuntimeError('机身反馈高度 %.2fm 低于测试门槛 %.2fm；请先用原厂遥控器站稳并核对反馈' %
+                               (sample['body_height'], self.MIN_TEST_BODY_HEIGHT_M))
         return sample
 
 
@@ -69,7 +79,7 @@ class FactoryVelocityClient:
     def arm(self):
         if self.armed or self.api_owned:
             raise RuntimeError('已有接管，先停止并交还')
-        self.feedback.require_fresh()
+        self.feedback.require_test_height()
         code, mode = self.check_mode()
         if code != 0 or not isinstance(mode, dict) or mode.get('name') != 'mcf':
             raise RuntimeError('原厂 mcf 控制模式未确认')
@@ -85,7 +95,7 @@ class FactoryVelocityClient:
                 if code != 0:
                     raise RuntimeError('API 接管未确认：%r' % code)
                 self._require_zero()
-                self.feedback.require_fresh()
+                self.feedback.require_test_height()
             except Exception:
                 try:
                     result = self.avoidance.UseRemoteCommandFromApi(False)
@@ -96,7 +106,7 @@ class FactoryVelocityClient:
                     pass
                 raise
         else:
-            self.feedback.require_fresh()
+            self.feedback.require_test_height()
         self.arm_deadline = self.clock()+5.
         self.armed = True
         self.emit('operator_armed', backend=self.backend, expires_s=5., physical_readiness='operator_confirmed')
@@ -111,7 +121,7 @@ class FactoryVelocityClient:
         if any(values):
             if not self.armed or self.needs_release():
                 raise RuntimeError('请先确认站稳并接管本次短动作')
-            self.feedback.require_fresh()
+            self.feedback.require_test_height()
         client = self.avoidance if self.avoidance_enabled else self.sport
         return self._result('Move', client.Move(*values), False)
 

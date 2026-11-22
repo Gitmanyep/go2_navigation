@@ -130,6 +130,37 @@ class FactoryBackendTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):self.client.arm()
         self.assertFalse(any(e[0]=='source' for e in self.events))
 
+    def test_low_height_blocks_arm_without_any_sdk_call(self):
+        self.feedback.observe(SimpleNamespace(mode=0,error_code=1001,body_height=.08,velocity=[0.,0.,0.]))
+        with self.assertRaisesRegex(RuntimeError, '低于测试门槛'):self.client.arm()
+        self.assertEqual(self.events, [])
+
+    def test_low_height_during_pulse_blocks_nonzero_but_allows_zero_and_release(self):
+        self.client.arm();self.events.clear()
+        self.feedback.observe(SimpleNamespace(mode=0,error_code=1001,body_height=.08,velocity=[0.,0.,0.]))
+        with self.assertRaises(RuntimeError):self.client.Move(.1,0.,0.)
+        self.assertEqual(self.events, [])
+        self.assertEqual(self.client.Move(0.,0.,0.),0)
+        self.assertEqual(self.client.StopMove(),0)
+        self.assertFalse(self.client.api_owned)
+
+    def test_height_dropping_during_acquire_releases_without_arming(self):
+        original=self.avoid.UseRemoteCommandFromApi
+        def acquire_then_lower(enabled):
+            result=original(enabled)
+            if enabled:
+                self.feedback.observe(SimpleNamespace(mode=0,error_code=1001,body_height=.08,velocity=[0.,0.,0.]))
+            return result
+        self.avoid.UseRemoteCommandFromApi=acquire_then_lower
+        with self.assertRaises(RuntimeError):self.client.arm()
+        self.assertFalse(self.client.armed)
+        self.assertFalse(self.client.api_owned)
+        self.assertIn(('source',False),self.events)
+
+    def test_test_height_boundary_and_unknown_raw_code_do_not_claim_readiness(self):
+        self.feedback.observe(SimpleNamespace(mode=0,error_code=9999,body_height=.2,velocity=[0.,0.,0.]))
+        self.assertEqual(self.feedback.require_test_height()['error_code'],9999)
+
     def test_stale_feedback_prevents_arm(self):
         self.t[0]=.31
         with self.assertRaises(RuntimeError):self.client.arm()

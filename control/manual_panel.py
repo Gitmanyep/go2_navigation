@@ -168,7 +168,8 @@ def main():
             fcntl.flock(lockfile,fcntl.LOCK_EX|fcntl.LOCK_NB)
             client,mode=real_client(args.iface,log.emit)
             log.emit('connected_readonly',mode=mode,iface=args.iface)
-            log.meta.update(backend=client.backend,factory_avoidance_enabled=client.avoidance_enabled)
+            log.meta.update(backend=client.backend,factory_avoidance_enabled=client.avoidance_enabled,
+                            min_test_body_height_m=client.feedback.MIN_TEST_BODY_HEIGHT_M)
             log.save()
         else:
             client=PreviewClient()
@@ -216,7 +217,7 @@ def main():
     else:
         ttk.Label(panel,text='预览不会连接 SDK，也不会改变原厂避障或控制来源。').pack(pady=4)
     status=tk.StringVar(value='等待指令')
-    ttk.Label(panel,textvariable=status,font=(family,14)).pack(pady=8)
+    ttk.Label(panel,textvariable=status,font=(family,14),wraplength=790).pack(pady=8)
     feedback_status=tk.StringVar(value='')
     if args.live:
         def arm():
@@ -257,12 +258,16 @@ def main():
         if args.live:
             armed=client.armed and not client.needs_release()
             for button in direction_buttons:button.configure(state='normal' if armed and not s['fault'] and not s['active'] else 'disabled')
-            arm_button.configure(state='disabled' if armed or s['fault'] or s['active'] or controller.pending_stop else 'normal')
+            readiness_error=None
+            try:client.feedback.require_test_height()
+            except RuntimeError as e:readiness_error=str(e)
+            arm_button.configure(state='disabled' if armed or s['fault'] or s['active'] or controller.pending_stop or readiness_error else 'normal')
             feedback=client.feedback.snapshot()
             if feedback:
-                feedback_status.set('实际反馈：v=(%.3f, %.3f, %.3f) m/s；接收年龄 %.2fs；mode=%s，error_code=%s（原始值，不据此判定就绪）'%(*feedback['velocity'],feedback['receive_age_s'],feedback['mode'],feedback['error_code']))
+                feedback_status.set('实际反馈：高度 %.2fm；v=(%.3f, %.3f, %.3f) m/s；接收年龄 %.2fs；mode=%s，error_code=%s（原始值，不据此判定就绪）'%(feedback['body_height'],*feedback['velocity'],feedback['receive_age_s'],feedback['mode'],feedback['error_code']))
             else:feedback_status.set('等待机身状态反馈；尚未确认运动执行')
-        if s['fault']:status.set(s['fault'])
+        if s['fault']:status.set(s['fault']+'；故障锁定，核对实物状态后重新打开面板')
+        elif args.live and readiness_error and not s['active']:status.set(readiness_error)
         elif s['active']:status.set(('正在发送请求（不是执行确认）' if args.live else '预览动作')+'：剩余 %.2f 秒'%s['remaining_s'])
         else:status.set(('已接管，等待一次方向点击' if client.armed else '未接管；请确认实物停止后再接管') if args.live else '预览就绪，不发送指令')
         root.after(100,refresh)
