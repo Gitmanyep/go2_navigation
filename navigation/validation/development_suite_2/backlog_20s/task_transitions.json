@@ -1,0 +1,134 @@
+[
+  {
+    "t": 0.0,
+    "old": "WAITING",
+    "new": "LOST",
+    "reason": "pose_unavailable"
+  },
+  {
+    "t": 0.2,
+    "old": "LOST",
+    "new": "STOP_LISTEN",
+    "reason": "direction_acquired_listen_first"
+  },
+  {
+    "t": 1.4000000000000001,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 5.4999999999999964,
+    "old": "APPROACH",
+    "new": "LOST",
+    "reason": "pose_unavailable"
+  },
+  {
+    "t": 8.299999999999986,
+    "old": "LOST",
+    "new": "STOP_LISTEN",
+    "reason": "direction_acquired_listen_first"
+  },
+  {
+    "t": 9.599999999999982,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 19.60000000000001,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 20.800000000000026,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 25.100000000000087,
+    "old": "APPROACH",
+    "new": "LOST",
+    "reason": "pose_unavailable"
+  },
+  {
+    "t": 28.10000000000013,
+    "old": "LOST",
+    "new": "STOP_LISTEN",
+    "reason": "direction_acquired_listen_first"
+  },
+  {
+    "t": 29.300000000000146,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 39.30000000000029,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 40.500000000000306,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 50.50000000000045,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 51.700000000000465,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 61.70000000000061,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 62.900000000000624,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 73.00000000000013,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 74.30000000000005,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 84.39999999999948,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 85.6999999999994,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 88.79999999999923,
+    "old": "APPROACH",
+    "new": "LOST",
+    "reason": "direction_lost"
+  }
+]

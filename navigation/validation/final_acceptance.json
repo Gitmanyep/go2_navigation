@@ -1,0 +1,204 @@
+{
+  "version": 3,
+  "all_passed": true,
+  "checks": {
+    "unit_tests": true,
+    "main_25_scenarios": true,
+    "six_seed_cases": true,
+    "independent_geometry_audit": true,
+    "independent_watchdog_probe": true,
+    "source_snapshot_matches": true
+  },
+  "unit_tests": 78,
+  "scenario_cases": 31,
+  "geometry_audit_cases": 31,
+  "approach_proximity_cases": 21,
+  "safe_rejection_cases": 9,
+  "operator_confirmed_completions": 1,
+  "direction_only_erroneous_completions": 0,
+  "total_collision_samples": 0,
+  "total_unsafe_slope_samples": 0,
+  "benchmark_120_steps": {
+    "v2": {
+      "source": "/media/leon/\u65b0\u52a0\u5377/dog_project/tools/go2_framework_sim_v2_20261122",
+      "steps": 120,
+      "scenario": "overhead_branch",
+      "python": "3.10.12",
+      "numpy": "1.21.5",
+      "navigation_ms": {
+        "p50": 225.9096160014451,
+        "p95": 227.49364719456935,
+        "max": 239.03940000309376
+      },
+      "whole_tick_ms": {
+        "p50": 233.501515500393,
+        "p95": 235.15053679657285,
+        "max": 246.43414599995594
+      },
+      "collisions": 0,
+      "real_time_10hz_verified": false,
+      "motion_commands_sent": 0
+    },
+    "v3": {
+      "source": "/tmp/go2_framework_sim_v3_20261122",
+      "steps": 120,
+      "scenario": "overhead_branch",
+      "python": "3.10.12",
+      "numpy": "1.21.5",
+      "navigation_ms": {
+        "p50": 6.904534006025642,
+        "p95": 16.010914948856225,
+        "max": 16.33848500205204
+      },
+      "whole_tick_ms": {
+        "p50": 16.144695997354575,
+        "p95": 25.25994779643952,
+        "max": 25.87793099519331
+      },
+      "collisions": 0,
+      "real_time_10hz_verified": false,
+      "motion_commands_sent": 0
+    }
+  },
+  "watchdog": {
+    "passed": true,
+    "scope": "local non-ROS threaded preview publisher; NOT hardware or ROS timing validation",
+    "worker_stalls": [
+      {
+        "start": 0.00013690999912796542,
+        "end": 0.5001380659959977
+      }
+    ],
+    "publisher_period_s": 0.1,
+    "candidate_lease_s": 0.15,
+    "first_zero_s": 0.20516696899721865,
+    "max_publication_gap_ms": 100.0106740029878,
+    "max_read_ms": 0.03084600029978901,
+    "samples": [
+      {
+        "t": 0.00519036699552089,
+        "candidate": [
+          0.1,
+          0.0
+        ],
+        "reason": "tracking",
+        "read_ms": 0.003426001057960093
+      },
+      {
+        "t": 0.10516352600097889,
+        "candidate": [
+          0.1,
+          0.0
+        ],
+        "reason": "tracking",
+        "read_ms": 0.007909999112598598
+      },
+      {
+        "t": 0.20516696899721865,
+        "candidate": [
+          0.0,
+          0.0
+        ],
+        "reason": "preview_result_or_sensor_expired",
+        "read_ms": 0.010757001291494817
+      },
+      {
+        "t": 0.30516225899918936,
+        "candidate": [
+          0.0,
+          0.0
+        ],
+        "reason": "preview_result_or_sensor_expired",
+        "read_ms": 0.010074996680486947
+      },
+      {
+        "t": 0.40516727499925764,
+        "candidate": [
+          0.0,
+          0.0
+        ],
+        "reason": "preview_result_or_sensor_expired",
+        "read_ms": 0.015933997929096222
+      },
+      {
+        "t": 0.500209582001844,
+        "candidate": [
+          0.1,
+          0.0
+        ],
+        "reason": "tracking",
+        "read_ms": 0.006867994670756161
+      },
+      {
+        "t": 0.6001227349988767,
+        "candidate": [
+          0.1,
+          0.0
+        ],
+        "reason": "tracking",
+        "read_ms": 0.017480997485108674
+      },
+      {
+        "t": 0.7001334090018645,
+        "candidate": [
+          0.1,
+          0.0
+        ],
+        "reason": "tracking",
+        "read_ms": 0.0199859932763502
+      },
+      {
+        "t": 0.8001418099956936,
+        "candidate": [
+          0.1,
+          0.0
+        ],
+        "reason": "tracking",
+        "read_ms": 0.024152002879418433
+      },
+      {
+        "t": 0.9001332659972832,
+        "candidate": [
+          0.1,
+          0.0
+        ],
+        "reason": "tracking",
+        "read_ms": 0.03084600029978901
+      },
+      {
+        "t": 1.0001302660020883,
+        "candidate": [
+          0.1,
+          0.0
+        ],
+        "reason": "tracking",
+        "read_ms": 0.016193996998481452
+      },
+      {
+        "t": 1.1001312939988566,
+        "candidate": [
+          0.1,
+          0.0
+        ],
+        "reason": "tracking",
+        "read_ms": 0.01680100103840232
+      }
+    ],
+    "real_time_10hz_verified": false,
+    "motion_commands_sent": 0
+  },
+  "maximum_case_navigation_ms": 61.94807199790375,
+  "failed_cases": [],
+  "real_time_10hz_verified": false,
+  "noetic_runtime_verified": false,
+  "gui_display_verified": false,
+  "real_pointlio_bag_replayed": false,
+  "hardware_verified": false,
+  "motion_commands_sent": 0,
+  "limitations": [
+    "Unmeasured head frame and sensor extrinsics; back mount is provisional.",
+    "Local rolling evidence memory, 2.5D terrain and kinematics; no contact/slip/load dynamics.",
+    "Free-volume certification API is not inferred from missing point-cloud returns.",
+    "Watchdog probe is local Python scheduling, not ROS or onboard timing certification."
+  ]
+}

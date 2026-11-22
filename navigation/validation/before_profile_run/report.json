@@ -1,0 +1,58 @@
+{
+  "all_passed": true,
+  "version": 2,
+  "model": "direction-only acoustic navigation; configurable head frame; sparse synthetic lidar; kinematics",
+  "statistics": {
+    "approach_proximity_rate": null,
+    "safe_rejection_rate": 1.0,
+    "operator_confirmed_task_success_rate": null,
+    "direction_only_completed_tasks": 0,
+    "completed_and_stopped": 0
+  },
+  "results": [
+    {
+      "scenario": "overhead_branch",
+      "seed": 21,
+      "passed": true,
+      "reached": false,
+      "expected_behavior": "safe_rejection",
+      "proximity_reached": false,
+      "task_completed": false,
+      "task_success": false,
+      "controller_state": "APPROACH",
+      "arrival_stopped": false,
+      "proximity_and_stopped": false,
+      "evaluation_proximity_radius_m": 0.65,
+      "evaluation_distance": "horizontal distance from body origin to source ground projection",
+      "navigation_runtime_ms": {
+        "p50": 519.6936029969947,
+        "p95": 526.2205860952236,
+        "maximum": 532.7095159955206
+      },
+      "p95_tick_ms": 534.5059713508817,
+      "real_time_10hz_verified": false,
+      "first_proximity_time_s": null,
+      "measured_simulated_stop_distance_m": null,
+      "duration_s": 4.0,
+      "distance_to_source_m": 3.0,
+      "path_length_m": 0.0,
+      "collision_samples": 0,
+      "unsafe_slope_samples": 0,
+      "max_moving_pitch_deg": 0.0,
+      "max_moving_roll_deg": 0.0,
+      "stopped_at_end": true,
+      "zero_during_fault": null,
+      "recovered_after_fault": null,
+      "travel_before_fault_stop_m": null,
+      "subgoal_updates": 1,
+      "reasons": {
+        "waiting_for_sensors": 2,
+        "task_stop_listen": 12,
+        "no_traversable_route": 26
+      },
+      "executable": false,
+      "motion_commands_sent": 0
+    }
+  ],
+  "motion_commands_sent": 0
+}

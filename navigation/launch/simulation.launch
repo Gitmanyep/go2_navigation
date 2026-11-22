@@ -1,0 +1,5 @@
+<launch>
+  <arg name="scenario" default="flat_detour"/>
+  <node pkg="go2_framework_sim_v3" type="ros_node.py" name="go2_framework_sim" output="screen"
+        args="--mode synthetic --scenario $(arg scenario)"/>
+</launch>

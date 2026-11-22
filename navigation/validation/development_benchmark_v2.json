@@ -1,0 +1,1 @@
+{"source": "/media/leon/\u65b0\u52a0\u5377/dog_project/tools/go2_framework_sim_v2_20261122", "steps": 120, "python": "3.10.12", "numpy": "1.21.5", "navigation_ms": {"p50": 232.442277501832, "p95": 234.2646657536534, "max": 236.00916599389166}, "whole_tick_ms": {"p50": 240.15941350080539, "p95": 242.01901500237, "max": 243.77332299627597}, "collisions": 0}

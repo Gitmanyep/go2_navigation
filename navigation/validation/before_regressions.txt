@@ -1,0 +1,41 @@
+test_expired_obstacle_is_unknown_even_with_fresh_floor (test_v3.V3Regressions) ... FAIL
+test_missing_odometry_resets_settle (test_v3.V3Regressions) ... FAIL
+test_observed_movement_resets_settle_without_tick (test_v3.V3Regressions) ... FAIL
+test_overhead_survives_missing_returns (test_v3.V3Regressions) ... FAIL
+
+======================================================================
+FAIL: test_expired_obstacle_is_unknown_even_with_fresh_floor (test_v3.V3Regressions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/go2_framework_sim_v3_20261122/test_v3.py", line 37, in test_expired_obstacle_is_unknown_even_with_fresh_floor
+    self.assertEqual(t['grid'][y,x],-1)
+AssertionError: 0 != -1
+
+======================================================================
+FAIL: test_missing_odometry_resets_settle (test_v3.V3Regressions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/go2_framework_sim_v3_20261122/test_v3.py", line 54, in test_missing_odometry_resets_settle
+    self.assertNotEqual(task.state,'COMPLETE')
+AssertionError: 'COMPLETE' == 'COMPLETE'
+
+======================================================================
+FAIL: test_observed_movement_resets_settle_without_tick (test_v3.V3Regressions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/go2_framework_sim_v3_20261122/test_v3.py", line 47, in test_observed_movement_resets_settle_without_tick
+    self.assertNotEqual(task.state,'COMPLETE')
+AssertionError: 'COMPLETE' == 'COMPLETE'
+
+======================================================================
+FAIL: test_overhead_survives_missing_returns (test_v3.V3Regressions)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/tmp/go2_framework_sim_v3_20261122/test_v3.py", line 31, in test_overhead_survives_missing_returns
+    self.assertTrue(t['heading_masks'][0][y,x])
+AssertionError: False is not true
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.272s
+
+FAILED (failures=4)

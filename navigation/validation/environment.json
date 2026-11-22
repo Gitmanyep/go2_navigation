@@ -1,0 +1,13 @@
+{
+  "python": "3.10.12 (main, Aug 31 2026, 10:18:17) [GCC 11.4.0]",
+  "numpy": "1.21.5",
+  "scipy": "1.8.0",
+  "platform": "Linux-6.8.0-138-generic-x86_64-with-glibc2.35",
+  "cpu_count": 32,
+  "source_staging": "/tmp/go2_framework_sim_v3_20261122",
+  "destination": "/media/leon/\u65b0\u52a0\u5377/dog_project/tools/go2_framework_sim_v3_20261122",
+  "noetic_runtime_tested": false,
+  "gui_display_tested": false,
+  "hardware_tested": false,
+  "motion_commands_sent": 0
+}

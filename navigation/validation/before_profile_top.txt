@@ -1,0 +1,35 @@
+Sun Nov 22 00:22:33 2026    validation/before_profile.pstats
+
+         59900156 function calls (59808895 primitive calls) in 15.543 seconds
+
+   Ordered by: cumulative time
+   List reduced from 4526 to 25 due to restriction <25>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    700/1    0.001    0.000   15.552   15.552 {built-in method builtins.exec}
+        1    0.000    0.000   15.552   15.552 <string>:1(<module>)
+        1    0.000    0.000   15.552   15.552 runpy.py:199(run_module)
+        1    0.000    0.000   15.547   15.547 runpy.py:63(_run_code)
+        1    0.000    0.000   15.547   15.547 simulation.py:1(<module>)
+        1    0.000    0.000   15.465   15.465 simulation.py:450(main)
+        1    0.000    0.000   13.888   13.888 simulation.py:273(run)
+       40    0.003    0.000   13.887    0.347 simulation.py:184(step)
+       40    0.005    0.000   13.572    0.339 core.py:519(step)
+      234    0.014    0.000   13.327    0.057 core.py:513(plan)
+      234    2.837    0.012   13.305    0.057 heading_planner.py:12(heading_astar)
+  3915990    2.280    0.000    9.635    0.000 heading_planner.py:16(valid)
+  3852368    5.095    0.000    7.034    0.000 core.py:359(directional_slope)
+        1    0.000    0.000    1.562    1.562 simulation.py:341(plot_results)
+   692/20    0.000    0.000    1.508    0.075 <frozen importlib._bootstrap>:233(_call_with_frames_removed)
+   469/17    0.001    0.000    1.507    0.089 <frozen importlib._bootstrap>:1022(_find_and_load)
+   466/17    0.001    0.000    1.506    0.089 <frozen importlib._bootstrap>:987(_find_and_load_unlocked)
+   446/17    0.001    0.000    1.505    0.089 <frozen importlib._bootstrap>:664(_load_unlocked)
+   372/16    0.001    0.000    1.505    0.094 <frozen importlib._bootstrap_external>:877(exec_module)
+   462/31    0.000    0.000    1.425    0.046 {built-in method builtins.__import__}
+  652/106    0.001    0.000    1.425    0.013 <frozen importlib._bootstrap>:1053(_handle_fromlist)
+        1    0.000    0.000    1.374    1.374 pyplot.py:1(<module>)
+        1    0.000    0.000    1.038    1.038 colorbar.py:1(<module>)
+        1    0.000    0.000    0.930    0.930 contour.py:1(<module>)
+        1    0.000    0.000    0.908    0.908 backend_bases.py:1(<module>)
+
+

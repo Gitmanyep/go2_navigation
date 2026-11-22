@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>go2_framework_sim_v3</name><version>0.3.0</version>
+  <description>Navigation framework simulation with Point-LIO preview inputs and isolated simulated velocity outputs.</description>
+  <maintainer email="local@example.invalid">Go2 project</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>rospy</exec_depend><exec_depend>std_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend><exec_depend>nav_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend><exec_depend>rviz</exec_depend>
+  <exec_depend>python3-numpy</exec_depend><exec_depend>python3-scipy</exec_depend>
+</package>

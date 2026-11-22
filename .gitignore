@@ -20,3 +20,7 @@ local/
 !config/requirements-py38.lock
 control/interface_test_results.json
 .DS_Store
+
+# The named v3 baseline includes its historical reproducibility evidence.
+!navigation/validation/**/*.npz
+!navigation/validation/**/*.pstats

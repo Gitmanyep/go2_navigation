@@ -1,0 +1,42 @@
+{
+  "all_clear": true,
+  "results": [
+    {
+      "scenario": "goal_jitter",
+      "seed": 22,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "goal_jitter",
+      "seed": 23,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "localization_drift",
+      "seed": 22,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "localization_drift",
+      "seed": 23,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "random_obstacles",
+      "seed": 22,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "random_obstacles",
+      "seed": 23,
+      "collision_samples": 0,
+      "first_hits": []
+    }
+  ],
+  "note": "Independent point-sampled wall and overhead envelope audit; does not verify legs, contact or dynamics."
+}

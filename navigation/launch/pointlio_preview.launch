@@ -1,0 +1,11 @@
+<launch>
+  <arg name="odom_reference" default="lidar"/>
+  <arg name="cloud_topic" default="/cloud_registered"/>
+  <arg name="odom_topic" default="/aft_mapped_to_init"/>
+  <arg name="direction_topic" default="/go2/navigation/direction"/>
+  <node pkg="go2_framework_sim_v3" type="ros_node.py" name="go2_framework_pointlio_preview" output="screen" args="--mode preview --odom-reference $(arg odom_reference)">
+    <remap from="/cloud_registered" to="$(arg cloud_topic)"/>
+    <remap from="/aft_mapped_to_init" to="$(arg odom_topic)"/>
+    <remap from="/go2/navigation/direction" to="$(arg direction_topic)"/>
+  </node>
+</launch>

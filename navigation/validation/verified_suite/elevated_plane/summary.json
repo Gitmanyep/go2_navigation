@@ -1,0 +1,43 @@
+{
+  "scenario": "elevated_plane",
+  "seed": 21,
+  "passed": true,
+  "reached": false,
+  "expected_behavior": "safe_rejection",
+  "proximity_reached": false,
+  "task_completed": false,
+  "task_success": false,
+  "controller_state": "APPROACH",
+  "arrival_stopped": false,
+  "proximity_and_stopped": false,
+  "evaluation_proximity_radius_m": 0.65,
+  "evaluation_distance": "horizontal distance from body origin to source ground projection",
+  "navigation_runtime_ms": {
+    "p50": 8.889646000170615,
+    "p95": 8.994905998406466,
+    "maximum": 11.078443996666465
+  },
+  "p95_tick_ms": 12.087716997484677,
+  "real_time_10hz_verified": false,
+  "first_proximity_time_s": null,
+  "measured_simulated_stop_distance_m": null,
+  "duration_s": 18.1,
+  "distance_to_source_m": 4.2,
+  "path_length_m": 0.0,
+  "collision_samples": 0,
+  "unsafe_slope_samples": 0,
+  "max_moving_pitch_deg": 0.0,
+  "max_moving_roll_deg": 0.0,
+  "stopped_at_end": true,
+  "zero_during_fault": null,
+  "recovered_after_fault": null,
+  "travel_before_fault_stop_m": null,
+  "subgoal_updates": 1,
+  "reasons": {
+    "waiting_for_sensors": 2,
+    "task_stop_listen": 25,
+    "ground_body_height_inconsistent_or_unobserved": 154
+  },
+  "executable": false,
+  "motion_commands_sent": 0
+}

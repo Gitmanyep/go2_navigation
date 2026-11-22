@@ -1,0 +1,134 @@
+[
+  {
+    "t": 0.0,
+    "old": "WAITING",
+    "new": "LOST",
+    "reason": "pose_unavailable"
+  },
+  {
+    "t": 0.2,
+    "old": "LOST",
+    "new": "STOP_LISTEN",
+    "reason": "direction_acquired_listen_first"
+  },
+  {
+    "t": 1.4000000000000001,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 5.299999999999997,
+    "old": "APPROACH",
+    "new": "LOST",
+    "reason": "direction_lost"
+  },
+  {
+    "t": 8.099999999999987,
+    "old": "LOST",
+    "new": "STOP_LISTEN",
+    "reason": "direction_acquired_listen_first"
+  },
+  {
+    "t": 9.399999999999983,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 19.400000000000006,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 20.600000000000023,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 30.600000000000165,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 31.800000000000182,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 41.800000000000324,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 43.00000000000034,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 53.00000000000048,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 54.2000000000005,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 64.20000000000063,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 65.50000000000055,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 75.59999999999998,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 76.8999999999999,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 86.99999999999933,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 88.29999999999926,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 98.39999999999868,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 99.69999999999861,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  }
+]

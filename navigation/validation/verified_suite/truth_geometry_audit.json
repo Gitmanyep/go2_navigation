@@ -1,0 +1,156 @@
+{
+  "all_clear": true,
+  "results": [
+    {
+      "scenario": "backlog_20s",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "blind_zone",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "cloud_dropout",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "cross_slope",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "dead_end",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "direction_dropout",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "dropoff",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "elevated_plane",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "flat_detour",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "gentle_slope",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "goal_jitter",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "high_beam",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "intermittent_branch",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "localization_drift",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "manual_confirmation",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "narrow_passage",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "odom_dropout",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "overhead_branch",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "random_obstacles",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "sensor_delay",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "sparse_lidar",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "steep_slope",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "too_narrow",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "u_obstacle",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    },
+    {
+      "scenario": "unsafe_cross_slope",
+      "seed": 21,
+      "collision_samples": 0,
+      "first_hits": []
+    }
+  ],
+  "note": "Independent point-sampled wall and overhead envelope audit; does not verify legs, contact or dynamics."
+}

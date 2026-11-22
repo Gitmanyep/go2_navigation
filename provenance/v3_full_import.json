@@ -1,0 +1,29 @@
+{
+  "imported_at": "2026-11-22T16:17:56.130965+08:00",
+  "source_directory": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122",
+  "destination": "navigation/",
+  "source_version": 3,
+  "source_file_count": 661,
+  "added_file_count": 639,
+  "existing_files_matched": 22,
+  "total_bytes": 87820376,
+  "original_unchanged": true,
+  "all_copied_files_match": true,
+  "manifest_sha256": "b36e5d64c45e4a3d9b66869810e25268ca7317eeb51526fc9b3006761a87d644",
+  "source_manifest": "navigation/manifest.json",
+  "excluded": [
+    "__pycache__/",
+    "*.pyc",
+    "*.pyo"
+  ],
+  "historical_validation_only": true,
+  "verification": {
+    "static_checks_passed": 128,
+    "historical_acceptance_summary_passed": true,
+    "fresh_simulation_scenario": "gentle_slope",
+    "fresh_simulation_passed": true,
+    "motion_commands_sent": 0,
+    "static_log": "logs/20261122_161911_test_86fc7489",
+    "simulation_log": "logs/20261122_161908_sim_81407edb"
+  }
+}

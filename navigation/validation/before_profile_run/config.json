@@ -1,0 +1,123 @@
+{
+  "resolution_m": 0.15,
+  "map_size_m": 10.2,
+  "footprint_radius_m": 0.45,
+  "max_speed_mps": 0.1,
+  "max_yaw_rate_rps": 0.3,
+  "acceleration_mps2": 0.25,
+  "source_max_age_s": 0.5,
+  "source_max_skew_s": 0.12,
+  "future_tolerance_s": 0.05,
+  "map_lease_s": 1.5,
+  "direction_max_age_s": 0.5,
+  "min_confidence": 0.6,
+  "goal_distance_m": 2.0,
+  "goal_tolerance_m": 0.22,
+  "heading_hysteresis_deg": 25.0,
+  "replan_period_s": 0.4,
+  "max_pitch_deg": 15.0,
+  "max_roll_deg": 10.0,
+  "max_step_m": 0.12,
+  "max_roughness_m": 0.045,
+  "obstacle_height_m": 0.18,
+  "prediction_horizon_s": 0.8,
+  "braking_deceleration_mps2": 0.25,
+  "sensor_range_m": 3.2,
+  "simulation_dt_s": 0.1,
+  "simulation_response_tau_s": 0.15,
+  "note": "Official standing dimensions are a stock envelope. Head frame, external back lidar offset, microphone offset, ground/body datum, braking and slope settings are provisional simulation inputs. User supplies only direction; task completion requires human confirmation.",
+  "version": 2,
+  "heading_filter_tau_s": 0.5,
+  "fusion_window_s": 0.7,
+  "minimum_cell_samples": 3,
+  "body_reference_height_m": 0.3,
+  "support_height_tolerance_m": 0.12,
+  "support_seed_radius_m": 1.2,
+  "minimum_support_points": 18,
+  "terrain_ground_band_m": 0.065,
+  "near_blind_radius_m": 0.0,
+  "microphone_position_body_m": [
+    0.35,
+    0,
+    0.5
+  ],
+  "lidar_position_body_m": [
+    -0.15,
+    0,
+    0.15
+  ],
+  "lidar_rotation_body": [
+    [
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      1,
+      0
+    ],
+    [
+      0,
+      0,
+      1
+    ]
+  ],
+  "lidar_extrinsics_calibrated": false,
+  "self_filter_enabled": false,
+  "geometry_calibrated": false,
+  "geometry_margin_m": 0.025,
+  "geometry_boxes": [
+    {
+      "name": "go2_standing_envelope",
+      "minimum": [
+        -0.35,
+        -0.155,
+        -0.2
+      ],
+      "maximum": [
+        0.35,
+        0.155,
+        0.1
+      ]
+    },
+    {
+      "name": "head_frame",
+      "minimum": [
+        0.2,
+        -0.28,
+        0.1
+      ],
+      "maximum": [
+        0.65,
+        0.28,
+        0.65
+      ]
+    }
+  ],
+  "heading_planner_enabled": true,
+  "task_listen_interval_s": 10.0,
+  "task_listen_duration_s": 1.2,
+  "task_settle_s": 0.8,
+  "task_stop_linear_mps": 0.02,
+  "task_stop_yaw_rps": 0.04,
+  "task_search_timeout_s": 8.0,
+  "simulated_drift_mps": 0.0,
+  "simulated_yaw_drift_rps": 0.0,
+  "exploration_enabled": true,
+  "exploration_timeout_s": 25.0,
+  "standing_dimensions_m": [
+    0.7,
+    0.31,
+    0.4
+  ],
+  "model_sources": {
+    "standing_dimensions": "https://www.unitree.com/go2/",
+    "base_and_imu": "https://github.com/unitreerobotics/unitree_ros/blob/master/robots/go2_description/urdf/go2_description.urdf",
+    "external_livox_mount": "user: back mounting; [-0.15,0,0.15]m provisional offset from body; NOT measured",
+    "head_frame": "unmeasured placeholder; must replace with measured extents"
+  },
+  "approximate_stock_mass_kg": 15.0,
+  "simulate_frame_occlusion": false,
+  "exploration_total_timeout_s": 180.0
+}

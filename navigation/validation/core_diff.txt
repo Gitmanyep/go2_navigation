@@ -1,0 +1,341 @@
+--- "/media/leon/\346\226\260\345\212\240\345\215\267/dog_project/tools/go2_framework_sim_v2_20261122/core.py"	2026-11-22 00:01:36.696025800 +0800
++++ core.py	2026-11-22 00:33:57.656826314 +0800
+@@ -7,6 +7,7 @@
+ import heapq
+ import json
+ import math
++import time
+ import numpy as np
+ from scipy import ndimage
+ from geometry import Geometry
+@@ -25,7 +26,7 @@
+             raise ValueError('invalid_configuration:' + key)
+     if cfg['max_pitch_deg'] >= 45 or cfg['max_roll_deg'] >= 45:
+         raise ValueError('unsupported_slope_configuration')
+-    for key in ['heading_filter_tau_s','fusion_window_s','body_reference_height_m','support_height_tolerance_m','minimum_cell_samples','minimum_support_points','task_settle_s']:
++    for key in ['heading_filter_tau_s','fusion_window_s','body_reference_height_m','support_height_tolerance_m','minimum_cell_samples','minimum_support_points','task_settle_s','obstacle_hold_s','task_observation_gap_s','route_position_tolerance_m','route_yaw_tolerance_rad','planner_budget_s','candidate_lease_s']:
+         if not math.isfinite(cfg[key]) or cfg[key]<=0:raise ValueError('invalid_configuration:'+key)
+     return cfg
+ 
+@@ -205,9 +206,15 @@
+         self.extent = np.full_like(self.elevation, np.nan)
+         self.seen = np.full_like(self.elevation, -math.inf)
+         self.obstacle_seen = self.seen.copy()
++        self.overhead_seen = self.seen.copy()
++        self.obstacle_cleared = self.seen.copy()
++        self.revision=0
++        self._analysis=None
++        self._analysis_until=-math.inf
+         self.obstacle_low=np.full_like(self.elevation,np.inf)
+         self.obstacle_high=np.full_like(self.elevation,-np.inf)
+         self.frames=deque()
++        self.obstacle_frames=deque()
+         self.support_valid=False
+         self.support_reason='support_not_observed'
+         self.geometry=Geometry(cfg)
+@@ -227,7 +234,7 @@
+             return
+         new_origin = np.floor(np.asarray(position[:2])/self.res)*self.res-self.n*self.res/2
+         shift = np.rint((self.origin-new_origin)/self.res).astype(int)
+-        for name, fill in [('elevation',np.nan),('extent',np.nan),('seen',-math.inf),('obstacle_seen',-math.inf),('obstacle_low',np.inf),('obstacle_high',-np.inf)]:
++        for name, fill in [('elevation',np.nan),('extent',np.nan),('seen',-math.inf),('obstacle_seen',-math.inf),('overhead_seen',-math.inf),('obstacle_cleared',-math.inf),('obstacle_low',np.inf),('obstacle_high',-np.inf)]:
+             old = getattr(self,name)
+             new = np.full_like(old,fill)
+             dx,dy = shift
+@@ -237,9 +244,11 @@
+                 new[ys:ye,xs:xe] = old[ys-dy:ye-dy,xs-dx:xe-dx]
+             setattr(self,name,new)
+         self.origin = new_origin
++        self.revision+=1;self._analysis=None
+ 
+     def integrate(self, points, position, evidence_mono, rotation=None):
+         self.recenter(position)
++        self.revision+=1;self._analysis=None
+         position=np.asarray(position,float)
+         if position.shape==(2,):position=np.r_[position,self.cfg['body_reference_height_m']]
+         rotation=np.eye(3) if rotation is None else rotation
+@@ -302,21 +311,72 @@
+         self.seen[connected]=capture[connected]
+         supported_height=lows.ravel()[index]
+         relative=z-supported_height
+-        nonground=relative>self.cfg['terrain_ground_band_m']
++        raw_nonground=relative>self.cfg['terrain_ground_band_m']
++        nonground=raw_nonground&(ts>self.obstacle_cleared.ravel()[index])
+         overlow=np.full(size,np.inf);overhigh=np.full(size,-np.inf)
+         np.minimum.at(overlow,index[nonground],relative[nonground])
+         np.maximum.at(overhigh,index[nonground],relative[nonground])
+         overlow,overhigh=overlow.reshape(self.n,self.n),overhigh.reshape(self.n,self.n)
+-        self.obstacle_low[connected]=overlow[connected]
+-        self.obstacle_high[connected]=overhigh[connected]
+-        obstacle=connected&(overlow<=self.cfg['body_reference_height_m']+.15)
+-        self.obstacle_seen[obstacle]=capture[obstacle]
+-        # Return points for exact 3D swept-box checks, not just an elevation slice.
+-        self.recent_points=merged
++        # Obstacle evidence is independent of ground fusion. Store absolute heights;
++        # floor-only returns cannot prove the formerly occupied volume is empty.
++        obstacle_times=np.full(size,-np.inf)
++        np.maximum.at(obstacle_times,index[nonground],ts[nonground])
++        observed=connected&np.isfinite(overlow)
++        abs_low=np.full_like(lows,np.inf);abs_high=np.full_like(lows,-np.inf)
++        abs_low[observed]=overlow[observed]+lows[observed]
++        abs_high[observed]=overhigh[observed]+lows[observed]
++        self.obstacle_low[observed]=np.minimum(self.obstacle_low[observed],abs_low[observed])
++        self.obstacle_high[observed]=np.maximum(self.obstacle_high[observed],abs_high[observed])
++        self.overhead_seen[observed]=obstacle_times.reshape(self.n,self.n)[observed]
++        obstacle=observed&(overlow<=self.cfg['body_reference_height_m']+.15)
++        self.obstacle_seen[obstacle]=self.overhead_seen[obstacle]
++        # Retain actual 3D returns for full-attitude swept checks too. The 2.5D
++        # heading masks alone do not capture a pitched head frame on a slope.
++        current=nonground&(ts==evidence_mono)&connected.ravel()[index]
++        self.obstacle_frames.append((evidence_mono,points[current].copy()))
++        while self.obstacle_frames and evidence_mono-self.obstacle_frames[0][0]>self.cfg['obstacle_hold_s']:
++            self.obstacle_frames.popleft()
++        retained=[]
++        for stamp,cloud in self.obstacle_frames:
++            c=np.floor((cloud[:,:2]-self.origin)/self.res).astype(int)
++            inside=(c[:,0]>=0)&(c[:,0]<self.n)&(c[:,1]>=0)&(c[:,1]<self.n)
++            cloud,c=cloud[inside],c[inside]
++            retained.append(cloud[stamp>self.obstacle_cleared[c[:,1],c[:,0]]])
++        self.recent_points=np.concatenate([points[~raw_nonground|nonground]]+retained)
++
++    def clear_obstacle_volume(self, cells, z_min, z_max, evidence_mono, *, certified=False):
++        """Explicit trusted free-volume evidence, NOT inferred from missing cloud returns.
++
++        Caller must certify visibility/coverage over the full stored absolute height
++        interval. No ROS point-cloud callback calls this API without such evidence.
++        """
++        if not certified or not np.isfinite([z_min,z_max,evidence_mono]).all() or z_min>=z_max:
++            raise ValueError('uncertified_free_volume')
++        for x,y in cells:
++            if not self.inside((x,y)):raise ValueError('free_volume_outside_map')
++            if evidence_mono<=max(self.overhead_seen[y,x],self.obstacle_cleared[y,x]):raise ValueError('stale_free_volume')
++            if z_min>self.obstacle_low[y,x] or z_max<self.obstacle_high[y,x]:
++                raise ValueError('incomplete_free_volume')
++        for x,y in cells:
++            self.obstacle_cleared[y,x]=evidence_mono
++            self.obstacle_low[y,x]=np.inf;self.obstacle_high[y,x]=-np.inf
++            self.overhead_seen[y,x]=self.obstacle_seen[y,x]=-math.inf
++        if hasattr(self,'recent_points'):
++            c=np.floor((self.recent_points[:,:2]-self.origin)/self.res).astype(int)
++            cleared=np.zeros(len(c),bool)
++            for x,y in cells:
++                cleared|=(c[:,0]==x)&(c[:,1]==y)&(self.recent_points[:,2]>=z_min)&(self.recent_points[:,2]<=z_max)
++            self.recent_points=self.recent_points[~cleared]
++        self.revision+=1;self._analysis=None
+ 
+     def analyze(self, mono):
+-        known = (mono-self.seen <= self.cfg['map_lease_s']) & np.isfinite(self.elevation)
+-        occupied = mono-self.obstacle_seen <= self.cfg['map_lease_s']
++        # Valid until the next evidence-age boundary; duplicate ROS/UI reads reuse
++        # the same immutable-by-convention arrays, never refresh the evidence age.
++        if self._analysis is not None and self._analysis_at<=mono<self._analysis_until:
++            return self._analysis
++        expired_obstacle=np.isfinite(self.overhead_seen)&(mono-self.overhead_seen>self.cfg['obstacle_hold_s'])
++        known = (mono-self.seen <= self.cfg['map_lease_s']) & np.isfinite(self.elevation)&~expired_obstacle
++        occupied = mono-self.obstacle_seen <= self.cfg['obstacle_hold_s']
+         # Nearest filling is only for numerical derivatives; it never changes known.
+         if known.any():
+             indices = ndimage.distance_transform_edt(~known, return_distances=False, return_indices=True)
+@@ -348,11 +408,17 @@
+         grid = np.where(~known,-1,np.where(bad,100,0)).astype(np.int8)
+         result=dict(known=known,grid=grid,blocked=blocked,elevation=z,gx=gx,gy=gy,
+                     slope=slope,roughness=rough,step=step,clearance=clearance,
+-                    obstacle_low=np.where(known,self.obstacle_low,np.inf),
+-                    obstacle_high=np.where(known,self.obstacle_high,-np.inf),
++                    obstacle_low=np.where(known,self.obstacle_low-self.elevation,np.inf),
++                    obstacle_high=np.where(known,self.obstacle_high-self.elevation,-np.inf),
+                     support_valid=self.support_valid,support_reason=self.support_reason)
+         if self.cfg['heading_planner_enabled']:
+             result['heading_masks']=self.geometry.heading_masks(result,self.res)
++        result['obstacle_unknown']=expired_obstacle
++        self._analysis=result;self._analysis_at=mono
++        expiries=np.r_[self.seen.ravel()+self.cfg['map_lease_s'],
++                       self.overhead_seen.ravel()+self.cfg['obstacle_hold_s']]
++        future=expiries[expiries>=mono]
++        self._analysis_until=np.nextafter(future.min(),math.inf) if len(future) else math.inf
+         return result
+ 
+ 
+@@ -446,6 +512,8 @@
+         self.pose_deadline = -math.inf
+         self.fault = 'waiting_for_sensors'
+         self.route = []
++        self.route_headings=[]
++        self.route_cursor=0
+         self.last_plan = -math.inf
+         self.planned_goal = None
+         self.last_velocity = 0.
+@@ -458,7 +526,7 @@
+             if self.pose is not None and (pose.stamp <= self.pose.stamp or pose.frame != self.pose.frame):
+                 raise ValueError('pose_reordered_or_frame_changed')
+             self.pose = pose
+-            self.task.observe_pose(pose)
++            self.task.observe_pose(pose,mono)
+             key=tuple(np.floor(pose.position[:2]/.3).astype(int))
+             self.visited[key]=self.visited.get(key,0)+1
+             self.poses.append(pose)
+@@ -467,6 +535,7 @@
+         except (ValueError,TypeError,OverflowError) as e:
+             self.fault = str(e)
+             self.pose_deadline = -math.inf
++            self.task.invalidate_observation()
+             return False
+ 
+     def cloud_input(self, points, stamp, frame, now, mono):
+@@ -516,10 +585,54 @@
+             return heading_astar(terrain,start,goal,self.pose.yaw,self.cfg)
+         return astar(terrain,start,goal,self.cfg)
+ 
++    def rotation_pending(self):
++        if not self.route_headings or not self.route:return False
++        i=self.route_cursor
++        if i>=len(self.route):return False
++        if i==0:return abs(wrap(self.route_headings[0]-self.pose.yaw))>self.cfg['route_yaw_tolerance_rad']
++        return np.linalg.norm(self.route[i]-self.route[i-1])<1e-8
++
++    def track_route(self):
++        """Consume ordered (position, heading) states; never jump via nearest XY.
++
++        Consecutive same-position nodes are individual signed 45-degree turns.
++        Replanning waits until such a turn has completed.
++        """
++        tol=self.cfg['route_position_tolerance_m'];yaw_tol=self.cfg['route_yaw_tolerance_rad']
++        while self.route_cursor<len(self.route):
++            i=self.route_cursor;target=self.route[i];heading=self.route_headings[i]
++            delta=target-self.pose.position[:2];distance=float(np.linalg.norm(delta))
++            rotation=i==0 or np.linalg.norm(target-self.route[i-1])<1e-8
++            error=wrap(heading-self.pose.yaw)
++            position_reached=distance<(self.map.res*.76 if rotation else tol)
++            if position_reached and abs(error)<yaw_tol:
++                self.route_cursor+=1;continue
++            if rotation:
++                # A plan step is at most 45 degrees. Preserve its sign even if
++                # tracking error crossed the opposite wrapping boundary.
++                if i>0:
++                    signed=wrap(heading-self.route_headings[i-1])
++                    if signed*error<0 and abs(error)>math.pi/2:
++                        error+=math.copysign(2*math.pi,signed)
++                return 0.,float(np.clip(1.6*error,-self.cfg['max_yaw_rate_rps'],self.cfg['max_yaw_rate_rps'])),'rotate'
++            desired=math.atan2(delta[1],delta[0]) if distance>=tol else heading
++            error=wrap(desired-self.pose.yaw)
++            w=float(np.clip(1.6*error,-self.cfg['max_yaw_rate_rps'],self.cfg['max_yaw_rate_rps']))
++            # Slow near each lattice node; no chord can skip a rotation node.
++            v=min(self.cfg['max_speed_mps'],1.2*distance)*max(0.,math.cos(error)) if abs(error)<.7 else 0.
++            return v,w,'translate'
++        return 0.,0.,'route_finished'
++
+     def step(self, now, mono, dt=.1):
+         result = dict(reason='waiting',candidate=[0.,0.],path=[],goal=None,task=self.task.status(),
+                       source_age_s=None,pitch_deg=None,roll_deg=None,
+                       executable=False,motion_commands_sent=0)
++        # Task continuity is updated even when the cloud/map cannot be used.
++        observations_fresh=(self.pose is not None and self.map is not None and not self.fault and
++                            mono<min(self.pose_deadline,self.cloud_deadline))
++        direction_ok=self.direction.valid(now,mono)
++        may_move=self.task.tick(mono,direction_ok,observations_fresh)
++        result['task']=self.task.status()
+         try:
+             if self.pose is None or self.map is None:
+                 raise ValueError('waiting_for_sensors')
+@@ -529,9 +642,6 @@
+                 raise ValueError(self.fault)
+             if mono >= min(self.cloud_deadline,self.pose_deadline):
+                 raise ValueError('sensor_deadline_expired')
+-            direction_ok=self.direction.valid(now,mono)
+-            may_move=self.task.tick(mono,direction_ok,True)
+-            result['task']=self.task.status()
+             if not may_move:
+                 raise ValueError('task_'+self.task.state.lower())
+             if not direction_ok:
+@@ -552,7 +662,9 @@
+             goal = self.direction.goal
+             result['goal'] = goal.tolist()
+             changed = self.planned_goal is None or np.linalg.norm(goal-self.planned_goal)>.01
+-            if mono-self.last_plan >= self.cfg['replan_period_s'] or changed:
++            if (mono-self.last_plan >= self.cfg['replan_period_s'] or changed) and not self.rotation_pending():
++                terrain.pop('_plan_budget_exhausted',None)
++                terrain['_plan_deadline']=time.perf_counter()+self.cfg['planner_budget_s']
+                 cells = self.plan(terrain,start,self.map.cell(goal))
+                 if not cells and self.intermediate_goal is not None:
+                     if np.linalg.norm(self.pose.position[:2]-self.intermediate_goal)>.22:
+@@ -592,35 +704,35 @@
+                             chosen.append(j)
+                         if len(chosen)>=8:
+                             break
+-                    for j in chosen:
+-                        cells = self.plan(terrain,start,(int(xx[j]),int(yy[j])))
+-                        if cells:
+-                            self.intermediate_goal=coords[j].copy()
+-                            break
++                    if chosen and self.cfg['heading_planner_enabled']:
++                        from heading_planner import heading_astar_many
++                        goals=[(int(xx[j]),int(yy[j])) for j in chosen]
++                        cells=heading_astar_many(terrain,start,goals,self.pose.yaw,self.cfg)
++                        if cells:self.intermediate_goal=self.map.world(cells[-1])
++                    else:
++                        for j in chosen:
++                            cells=self.plan(terrain,start,(int(xx[j]),int(yy[j])))
++                            if cells:
++                                self.intermediate_goal=coords[j].copy();break
+                 if cells and self.map.cell(goal)==cells[-1]:
+                     self.recovery_since=None;self.exploring=False;self.intermediate_goal=None;self.recovery_anchor=None;self.exploration_started=None
+                 self.route_headings=[state[2]*math.pi/4 for state in getattr(cells,"states",[])]
+                 self.route = [self.map.world(c) for c in cells]
++                self.route_cursor=0
+                 self.planned_goal = goal.copy()
+                 self.last_plan = mono
+             if not self.route:
+-                raise ValueError('no_traversable_route')
+-            # Drop waypoints behind current pose, then track a 0.4 m lookahead.
+-            distances = np.linalg.norm(np.asarray(self.route)-self.pose.position[:2],axis=1)
+-            i = int(np.argmin(distances))
+-            target = self.route[-1]
+-            for point in self.route[i:]:
+-                # The lookahead chord must itself be clear: a path bend cannot
+-                # be shortcut through an inflated corner.
+-                visible = segment_clear(self.pose.position[:2],point,self.map,terrain['blocked'])
+-                if not visible:
+-                    break
+-                target = point
+-                if np.linalg.norm(point-self.pose.position[:2]) >= .4:
+-                    break
+-            error = wrap(math.atan2(target[1]-self.pose.position[1],target[0]-self.pose.position[0])-self.pose.yaw)
+-            w = float(np.clip(1.6*error,-self.cfg['max_yaw_rate_rps'],self.cfg['max_yaw_rate_rps']))
+-            v = self.cfg['max_speed_mps']*max(0.,math.cos(error)) if abs(error)<.7 else 0.
++                raise ValueError('planning_budget_exhausted' if terrain.get('_plan_budget_exhausted') else 'no_traversable_route')
++            if self.route_headings:
++                v,w,tracking_mode=self.track_route()
++                result['route_cursor']=self.route_cursor
++                result['tracking_mode']=tracking_mode
++            else:
++                # Compatibility for the optional XY-only planner.
++                target=self.route[min(self.route_cursor+1,len(self.route)-1)]
++                error=wrap(math.atan2(*(target-self.pose.position[:2])[::-1])-self.pose.yaw)
++                w=float(np.clip(1.6*error,-self.cfg['max_yaw_rate_rps'],self.cfg['max_yaw_rate_rps']))
++                v=self.cfg['max_speed_mps']*max(0.,math.cos(error)) if abs(error)<.7 else 0.
+             v *= max(.25,1-.6*abs(pitch)/self.cfg['max_pitch_deg']-.4*abs(roll)/self.cfg['max_roll_deg'])
+             # Clearance also bounds source-delay + response + braking distance.
+             clearance = terrain['clearance'][start[1],start[0]]-self.cfg['footprint_radius_m']-self.map.res*math.sqrt(.5)
+@@ -640,6 +752,9 @@
+                     base=np.array([*xy,terrain['elevation'][cell[1],cell[0]]+self.cfg['body_reference_height_m']])
+                     yaw_delta=a-self.pose.yaw
+                     rz=np.array([[math.cos(yaw_delta),-math.sin(yaw_delta),0],[math.sin(yaw_delta),math.cos(yaw_delta),0],[0,0,1]])
++                    angle=(a%(2*math.pi))/(math.pi/8)
++                    if 'heading_masks' in terrain and any(terrain['heading_masks'][h%16][cell[1],cell[0]] for h in [math.floor(angle),math.ceil(angle)]):
++                        return False
+                     if self.geometry.collision(self.map.recent_points,base,rz@self.pose.rotation):
+                         return False
+                     p,r = directional_slope(terrain,cell,a)
+@@ -660,6 +775,10 @@
+             result['task']=self.task.status()
+             result['reason'] = str(e)
+             self.last_velocity = 0.
+-            self.route = []
+-            self.last_plan = -math.inf
++            # Failed plans respect the replan period too; retain heading states on
++            # a sweep rejection so the next tick cannot silently reverse the turn.
++            if str(e)!='predicted_sweep_blocked':
++                self.route=[];self.route_headings=[];self.route_cursor=0
++            if str(e) not in ('no_traversable_route','planning_budget_exhausted','predicted_sweep_blocked'):
++                self.last_plan=-math.inf
+         return result

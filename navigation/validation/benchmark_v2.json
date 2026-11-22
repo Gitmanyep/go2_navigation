@@ -1,0 +1,20 @@
+{
+  "source": "/media/leon/\u65b0\u52a0\u5377/dog_project/tools/go2_framework_sim_v2_20261122",
+  "steps": 120,
+  "scenario": "overhead_branch",
+  "python": "3.10.12",
+  "numpy": "1.21.5",
+  "navigation_ms": {
+    "p50": 225.9096160014451,
+    "p95": 227.49364719456935,
+    "max": 239.03940000309376
+  },
+  "whole_tick_ms": {
+    "p50": 233.501515500393,
+    "p95": 235.15053679657285,
+    "max": 246.43414599995594
+  },
+  "collisions": 0,
+  "real_time_10hz_verified": false,
+  "motion_commands_sent": 0
+}

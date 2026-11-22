@@ -1,0 +1,98 @@
+[
+  {
+    "t": 0.0,
+    "old": "WAITING",
+    "new": "LOST",
+    "reason": "pose_unavailable"
+  },
+  {
+    "t": 0.2,
+    "old": "LOST",
+    "new": "STOP_LISTEN",
+    "reason": "direction_acquired_listen_first"
+  },
+  {
+    "t": 1.4000000000000001,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 11.499999999999975,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 12.79999999999997,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 22.800000000000054,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 24.00000000000007,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 34.00000000000021,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 35.20000000000023,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 45.20000000000037,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 46.40000000000039,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 56.40000000000053,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 57.60000000000055,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 67.70000000000043,
+    "old": "APPROACH",
+    "new": "STOP_LISTEN",
+    "reason": "periodic_stationary_listening"
+  },
+  {
+    "t": 69.00000000000036,
+    "old": "STOP_LISTEN",
+    "new": "APPROACH",
+    "reason": "listen_complete"
+  },
+  {
+    "t": 71.60000000000021,
+    "old": "APPROACH",
+    "new": "LOST",
+    "reason": "direction_lost"
+  }
+]

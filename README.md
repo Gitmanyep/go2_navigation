@@ -8,7 +8,8 @@
 
 | 内容 | 位置 | 是否纳入 Git |
 |---|---|---|
-| 当前导航、仿真、回放与回归测试 | `navigation/` | 是 |
+| 完整 v3 仿真、导航源码、GUI、回放与回归测试 | `navigation/` | 是 |
+| v3 原始场景报告、轨迹、地图快照、图像和验收材料 | `navigation/validation/` | 是，作为该版本的历史验证基线 |
 | 手动面板、早期方向转换工具与测试 | `control/` | 是；方向转换工具是历史接口示例，导航使用自身 DirectionManager |
 | 唯一启动入口、日志与部署工具 | `bin/`、`scripts/` | 是 |
 | 固定依赖、ROS 包与启动配置 | `config/`、`package.xml`、`launch/` | 是 |
@@ -17,7 +18,7 @@
 | 虚拟环境、离线包、部署记录和 bundle | `.venv/`、`artifacts/` | 否 |
 | 旧 backup、原工作空间、SDK、bag、点云地图、模型 | 原有目录 | 不复制进本仓库 |
 
-原始 `backup/`、`tools/` 版本和机载旧目录保持原样。导入的源码未修改；本次新增工程入口、日志、依赖隔离、部署脚本和文档。逐文件来源见 [import_manifest.json](provenance/import_manifest.json)。`docs/*original*` 是历史说明，启动命令以本 README 为准。
+原始 `backup/`、`tools/` 版本和机载旧目录保持原样。导入的源码未修改；本次新增工程入口、日志、依赖隔离、部署脚本和文档。首次来源见 [import_manifest.json](provenance/import_manifest.json)，完整 v3 补齐记录见 [v3_full_import.json](provenance/v3_full_import.json)。`navigation/manifest.json` 保存原版逐文件 SHA256。`docs/*original*` 是历史说明，工程统一启动命令以本 README 为准。
 
 笔记本仓库：`/media/leon/新加卷/dog_project/go2_navigation`。
 机载仓库：`/home/unitree/go2_navigation`。
@@ -41,6 +42,8 @@ Git 不会自动改变机器人调用的程序。使用以下绝对路径，执�
 
 ## 笔记本测试与仿真
 
+**指定的 `tools/go2_framework_sim_v3_20261122` 版本已完整收入 `navigation/`**，共 661 个原版文件（不含 Python 缓存），内容逐一相同。不是只有 ROS 接口：包含交互 GUI、25 个场景、仿真模型、头架几何、规划器、独立审计、可视化工具和原版验证材料。
+
 ```bash
 cd /media/leon/新加卷/dog_project/go2_navigation
 ./bin/go2-nav test
@@ -48,7 +51,11 @@ cd /media/leon/新加卷/dog_project/go2_navigation
 ./bin/go2-nav gui
 ```
 
+队友克隆仓库后，在仓库根目录运行 `./bin/go2-nav gui` 即可进入原版 v3 仿真界面；需要安装 Python 依赖和 Tk。完整安装、批量场景和历史验收说明见 [SIMULATION.md](docs/SIMULATION.md)。无需连接机器狗或安装 Unitree SDK；纯 Python 仿真也不要求 ROS。
+
 每次运行新建 `logs/时间_模式_随机编号/`，包含 `metadata.json`（完整命令、Git 提交、工作区是否有修改、Python 及退出码）、参数副本 `config.json` 和 `terminal.log`。仿真结果在该目录的 `simulation/`。日志不提交 Git。
+
+`navigation/validation/` 是随原版导入的历史记录。以后新产生的运行日志、轨迹和地图仍留在被忽略的 `logs/` 或 `navigation/runs/`，不会自动混入历史基线。
 
 `doctor` 和 `test` 不导入 SDK、不发送运动指令。机载系统 Python 原先存在 NumPy/SciPy 版本冲突，新部署使用本仓库 `.venv`，不会升级原系统或用户包。`bin/go2-nav` 优先使用 `.venv/bin/python3`，禁用用户 site-packages；ROS 路径仅在预览子进程显式加载 Noetic。
 
