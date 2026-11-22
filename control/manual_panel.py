@@ -120,18 +120,37 @@ class SessionLog:
         self.save()
         self.stream.close()
 
-def real_client(iface):
+def real_client(iface, emit=lambda *args, **kwargs: None):
     # Called only by an explicit --live invocation. No posture, mode or avoidance changes.
     from unitree_sdk2py.core.channel import ChannelFactoryInitialize
     from unitree_sdk2py.comm.motion_switcher.motion_switcher_client import MotionSwitcherClient
     from unitree_sdk2py.go2.sport.sport_client import SportClient
+    from unitree_sdk2py.go2.obstacles_avoid.obstacles_avoid_client import ObstaclesAvoidClient
+    from unitree_sdk2py.core.channel import ChannelSubscriber
+    from unitree_sdk2py.idl.unitree_go.msg.dds_ import SportModeState_
+    from factory_backend import FactoryVelocityClient, StateFeedback
     ChannelFactoryInitialize(0,iface)
     switch=MotionSwitcherClient();switch.SetTimeout(1.);switch.Init()
     code,mode=switch.CheckMode()
     if code!=0 or not isinstance(mode,dict) or mode.get('name')!='mcf':
         raise RuntimeError('原厂 mcf 控制模式未确认：%r %r'%(code,mode))
     client=SportClient();client.SetTimeout(.3);client.Init()
-    return client,mode
+    version_code,server_version=client.GetServerApiVersion()
+    if version_code!=0 or server_version!=client.GetApiVersion():
+        raise RuntimeError('Sport 服务版本未确认：%r %r'%(version_code,server_version))
+    avoid=ObstaclesAvoidClient();avoid.SetTimeout(.3);avoid.Init()
+    avoid_code,enabled=avoid.SwitchGet()
+    if avoid_code!=0 or type(enabled) is not bool:
+        raise RuntimeError('原厂避障开关未确认：%r %r'%(avoid_code,enabled))
+    if enabled:
+        avoid_code,avoid_version=avoid.GetServerApiVersion()
+        if avoid_code!=0 or avoid_version!=avoid.GetApiVersion():
+            raise RuntimeError('原厂避障服务版本未确认：%r %r'%(avoid_code,avoid_version))
+    feedback=StateFeedback()
+    result=FactoryVelocityClient(client,avoid,enabled,feedback,switch.CheckMode,emit)
+    subscriber=ChannelSubscriber('rt/sportmodestate',SportModeState_)
+    subscriber.Init(feedback.observe,1);result.subscriber=subscriber
+    return result,dict(mode,backend=result.backend,avoidance_enabled=enabled,sport_api_version=server_version)
 
 def main():
     p=argparse.ArgumentParser(description=__doc__)
@@ -144,8 +163,10 @@ def main():
         if args.live:
             lockfile=(Path(__file__).parent/'.manual_live.lock').open('a')
             fcntl.flock(lockfile,fcntl.LOCK_EX|fcntl.LOCK_NB)
-            client,mode=real_client(args.iface)
+            client,mode=real_client(args.iface,log.emit)
             log.emit('connected_readonly',mode=mode,iface=args.iface)
+            log.meta.update(backend=client.backend,factory_avoidance_enabled=client.avoidance_enabled)
+            log.save()
         else:
             client=PreviewClient()
             log.emit('preview_no_sdk')
@@ -157,7 +178,7 @@ def main():
     import tkinter.font as tkfont
     from tkinter import ttk
     root=tk.Tk();root.title('Go2 手动控制 — '+('实机' if args.live else '预览，不发送指令'))
-    root.geometry('760x560')
+    root.geometry('840x700')
     # Conda Tk on this Jetson exposes X11 Chinese bitmap fonts, not fontconfig aliases.
     families=set(tkfont.families(root))
     family='fangsong ti' if 'fangsong ti' in families else 'Sans'
@@ -168,7 +189,9 @@ def main():
     finished=threading.Event()
     def worker():
         while not finished.is_set():
-            try:controller.tick()
+            try:
+                if args.live and client.needs_release():controller.stop('arm_lease_expired')
+                controller.tick()
             except Exception as e:
                 controller.fault=str(e)
                 controller.active=False
@@ -179,37 +202,67 @@ def main():
     panel=ttk.Frame(root,padding=20);panel.pack(fill='both',expand=True)
     ttk.Label(panel,text='实机短动作控制' if args.live else '预览模式：不会发送机器人指令',font=(family,16)).pack(pady=6)
     ttk.Label(panel,text='每次点击约 0.3 秒；前后速度 0.1 米/秒；转向速度 0.25 弧度/秒。').pack(pady=4)
-    ttk.Label(panel,text='手动控制不自动绕障。使用实机时，保持原厂遥控器可接管。',foreground='#a34a00').pack(pady=4)
+    if args.live:
+        ttk.Label(panel,text='当前通道：'+client.backend+'；原厂避障：'+('开启（保持原状）' if client.avoidance_enabled else '关闭（保持原状）')).pack(pady=4)
+        ttk.Label(panel,text='先确认站稳并接管，再点一个方向；动作结束交还 API 指令源。\n接管期间遥控接管效果须现场验证，停止异常时用原厂遥控器处理。',foreground='#a34a00',justify='center').pack(pady=4)
+    else:
+        ttk.Label(panel,text='预览不会连接 SDK，也不会改变原厂避障或控制来源。').pack(pady=4)
     status=tk.StringVar(value='等待指令')
     ttk.Label(panel,textvariable=status,font=(family,14)).pack(pady=8)
+    feedback_status=tk.StringVar(value='')
+    if args.live:
+        def arm():
+            with controller.lock:
+                if controller.closing or controller.active or controller.pending_stop or controller.fault:return
+                try:client.arm()
+                except Exception as e:
+                    log.emit('arm_failed',reason=str(e))
+                    controller.fault='接管失败：'+str(e)
+                    controller.stop('arm_failed')
+        arm_button=ttk.Button(panel,text='我已确认站稳：接管本次短动作（5 秒内点击方向）',command=arm)
+        arm_button.pack(pady=4)
+        ttk.Label(panel,textvariable=feedback_status,wraplength=790).pack(pady=4)
     grid=ttk.Frame(panel);grid.pack(pady=8)
+    direction_buttons=[]
     def action(name):
         try:
             if controller.request(DIRECTIONS[name]):status.set(('执行：' if args.live else '预览：')+name)
         except Exception as e:status.set(str(e))
     for name,text,row,col in [('forward','前进 ↑',0,1),('left','左转 ↶',1,0),('right','右转 ↷',1,2),('backward','后退 ↓',2,1)]:
-        ttk.Button(grid,text=text,width=16,command=lambda n=name:action(n)).grid(row=row,column=col,padx=6,pady=5,ipady=10)
-    ttk.Button(grid,text='停止（空格）',width=16,command=lambda:controller.stop('stop_button')).grid(row=1,column=1,padx=6,pady=5,ipady=10)
+        button=ttk.Button(grid,text=text,width=16,command=lambda n=name:action(n))
+        button.grid(row=row,column=col,padx=6,pady=5,ipady=10)
+        if args.live:button.configure(state='disabled')
+        direction_buttons.append(button)
+    ttk.Button(grid,text='停止并交还（空格）',width=16,command=lambda:controller.stop('stop_button')).grid(row=1,column=1,padx=6,pady=5,ipady=10)
     ttk.Label(panel,text='动作中再次点击会被忽略，不会排队或延长动作。\n窗口失去焦点时请求停止；请先用预览核对操作。',justify='center').pack(pady=8)
     ttk.Label(panel,text='本次记录：'+str(log.root),wraplength=650).pack(pady=6)
     root.bind('<space>',lambda e:controller.stop('space'))
     def check_focus():
         try:
-            if root.focus_displayof() is None and controller.state()['active']:
+            if root.focus_displayof() is None and (controller.state()['active'] or (args.live and (client.armed or client.api_owned))):
                 controller.stop('focus_lost')
         except tk.TclError:pass
     root.bind('<FocusOut>',lambda e:root.after(25,check_focus))
     def refresh():
         s=controller.state()
+        if args.live:
+            armed=client.armed and not client.needs_release()
+            for button in direction_buttons:button.configure(state='normal' if armed and not s['fault'] and not s['active'] else 'disabled')
+            arm_button.configure(state='disabled' if armed or s['fault'] or s['active'] or controller.pending_stop else 'normal')
+            feedback=client.feedback.snapshot()
+            if feedback:
+                feedback_status.set('实际反馈：v=(%.3f, %.3f, %.3f) m/s；接收年龄 %.2fs；mode=%s，error_code=%s（原始值，不据此判定就绪）'%(*feedback['velocity'],feedback['receive_age_s'],feedback['mode'],feedback['error_code']))
+            else:feedback_status.set('等待机身状态反馈；尚未确认运动执行')
         if s['fault']:status.set(s['fault'])
-        elif s['active']:status.set(('实机动作' if args.live else '预览动作')+'：剩余 %.2f 秒'%s['remaining_s'])
-        else:status.set('已停止，等待下一次点击' if args.live else '预览就绪，不发送指令')
+        elif s['active']:status.set(('正在发送请求（不是执行确认）' if args.live else '预览动作')+'：剩余 %.2f 秒'%s['remaining_s'])
+        else:status.set(('已接管，等待一次方向点击' if client.armed else '未接管；请确认实物停止后再接管') if args.live else '预览就绪，不发送指令')
         root.after(100,refresh)
     closed=[False]
     def close():
         if closed[0]:return
         closed[0]=True
-        controller.close();finished.set();thread.join(timeout=1.)
+        if args.live and (client.armed or client.api_owned):controller.stop('window_close_release')
+        controller.close();finished.set();thread.join(timeout=2.)
         log.emit('closed',state=controller.state());log.finish();root.destroy()
     root.protocol('WM_DELETE_WINDOW',close)
     signal.signal(signal.SIGINT,lambda *_:root.after(0,close))

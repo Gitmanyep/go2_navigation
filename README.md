@@ -18,10 +18,11 @@
 | 虚拟环境、离线包、部署记录和 bundle | `.venv/`、`artifacts/` | 否 |
 | 旧 backup、原工作空间、SDK、bag、点云地图、模型 | 原有目录 | 不复制进本仓库 |
 
-原始 `backup/`、`tools/` 版本和机载旧目录保持原样。导入的源码未修改；本次新增工程入口、日志、依赖隔离、部署脚本和文档。首次来源见 [import_manifest.json](provenance/import_manifest.json)，完整 v3 补齐记录见 [v3_full_import.json](provenance/v3_full_import.json)。`navigation/manifest.json` 保存原版逐文件 SHA256。`docs/*original*` 是历史说明，工程统一启动命令以本 README 为准。
+原始 `backup/`、`tools/` 版本和机载旧目录保持原样。`navigation/` 中导入的 v3 源码保持原版；手动面板的后续适配见 CHANGELOG。首次来源见 [import_manifest.json](provenance/import_manifest.json)，完整 v3 补齐记录见 [v3_full_import.json](provenance/v3_full_import.json)。`navigation/manifest.json` 保存原版逐文件 SHA256。`docs/*original*` 是历史说明，工程统一启动命令以本 README 为准。
 
 笔记本仓库：`/media/leon/新加卷/dog_project/go2_navigation`。
 机载仓库：`/home/unitree/go2_navigation`。
+从 GitHub 新克隆并运行的机载仓库：`/home/unitree/go2_navigation_github`；前一个路径保留首次部署版本，不会随 GitHub 自动更新。以下手动实机测试使用带 `_github` 的新目录。
 共享仓库：[Gitmanyep/go2_navigation](https://github.com/Gitmanyep/go2_navigation)。
 
 ## 使用哪个版本
@@ -65,10 +66,22 @@ cd /media/leon/新加卷/dog_project/go2_navigation
 在 NoMachine 的机载终端启动：
 
 ```bash
-/home/unitree/go2_navigation/bin/go2-nav manual-preview
+/home/unitree/go2_navigation_github/bin/go2-nav manual-preview
 ```
 
-这是预览。以后明确需要实际短动作时使用 `manual-live`，点击按钮才调用原厂高层 SDK；不会自动站起或切换控制模式。实机入口明确使用 `/home/unitree/miniforge3/envs/rl/bin/python` 和 `/home/unitree/unitree_sdk2_python`，并记录 SDK 提交和修改状态。手动面板不自动绕障；导航候选速度不会自动送给它。本次部署不会执行 `manual-live`。
+这是预览。明确需要实际短动作时使用：
+
+```bash
+/home/unitree/go2_navigation_github/bin/go2-nav manual-live --iface eth0
+```
+
+启动只查询 mcf 模式、服务版本、原厂避障开关，并订阅机身反馈。若原厂避障开启，短动作使用 `obstacles_avoid` 通道；若关闭，使用 `sport` 通道。面板不修改原厂避障开关，不自动站起或切换腿控模式。
+
+先由操作者确认站稳，再点击“接管本次短动作”，5 秒内点击一个方向。避障通道仅在明确接管时切换 API 指令源；到期、停止、失焦和关闭会请求零速度、Sport 停止，并尝试交还 API 指令源。每次短动作后需重新接管。接管失败或停止/交还失败会锁定方向按钮，不自动解除或重复非零指令。实物遥控接管、制动和原厂避障效果仍需现场验收，不能把 API 交还应答当成物理停止证明。
+
+界面显示实际机身速度、接收年龄和原始状态字段。`Move` 的 0 返回值仅表示本地发送无即时错误；它不是服务端执行确认，也不能据此宣布狗已移动。SDK 返回的未知状态值不推断为健康或就绪。详细诊断见 [MANUAL_HARDWARE.md](docs/MANUAL_HARDWARE.md)。
+
+实机入口明确使用 `/home/unitree/miniforge3/envs/rl/bin/python` 和 `/home/unitree/unitree_sdk2_python`，并记录 SDK 提交和修改状态。面板未接入本仓库的导航避障，导航候选速度不会自动送给它。
 
 手动面板按钮事件另存在 `~/go2_logs/manual_panel_*/`。程序仅防止自身副本的重复实例，无法排除其它旧工具或其它电脑的控制程序。
 
