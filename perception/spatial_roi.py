@@ -66,7 +66,17 @@ class SpatialROI:
             return indexes
         # A 3D voxel retains an actual return, not a centroid or a filled cell.
         cells = np.floor(points[indexes]/voxel).astype(np.int64)
-        _, keep = np.unique(cells, axis=0, return_index=True)
+        lower = cells.min(axis=0)
+        span = cells.max(axis=0)-lower+1
+        # Sort scalar integer keys instead of structured XYZ rows. On the Jetson,
+        # sorting accumulated rows consumed almost a full preview worker period.
+        # Check the product with Python integers before any int64 multiplication.
+        if math.prod(int(v) for v in span) <= np.iinfo(np.int64).max:
+            shifted = cells-lower
+            keys = shifted[:, 0]+span[0]*(shifted[:, 1]+span[1]*shifted[:, 2])
+            _, keep = np.unique(keys, return_index=True)
+        else:
+            _, keep = np.unique(cells, axis=0, return_index=True)
         return indexes[keep]
 
     def select(self, points, pose, downsample=True):

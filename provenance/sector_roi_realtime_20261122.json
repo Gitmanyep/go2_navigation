@@ -1,0 +1,18 @@
+{
+  "date": "2026-11-22T20:31:15.855876+08:00",
+  "base_commit": "3cb7e47a2cbe6d2e31ac1c5c07307cc537c0ab2a",
+  "reason": "Onboard accumulated XYZ structured sorting about 95ms caused timeout; first live comparison failed.",
+  "fix": "Equivalent scalar integer voxel keys with overflow fallback, preserving same original sample per cell.",
+  "software_checks": {
+    "simulation": 78,
+    "fake_control": 43,
+    "perception_and_adapters": 135,
+    "total": 256,
+    "passed": true
+  },
+  "local_test_log": "logs/20261122_203029_test_86b1debf",
+  "hardware_acceptance": "pending_retest",
+  "robot_commands_sent": 0,
+  "thresholds_unchanged": true,
+  "original_pointlio_and_driver_unchanged": true
+}

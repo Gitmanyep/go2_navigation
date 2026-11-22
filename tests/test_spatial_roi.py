@@ -77,6 +77,22 @@ class SpatialROITests(unittest.TestCase):
         result,_=SpatialROI().select(points,pose())
         np.testing.assert_array_equal(points,result)
 
+    def test_fast_voxels_preserve_the_same_original_representative_per_cell(self):
+        rng=np.random.default_rng(130)
+        points=np.r_[rng.uniform(-3.,3.,(2000,3)),np.repeat([[1.01,.01,.01]],20,axis=0)]
+        indexes=rng.permutation(len(points))
+        for voxel in (.04,.12):
+            _,expected=np.unique(np.floor(points[indexes]/voxel).astype(np.int64),axis=0,return_index=True)
+            actual=SpatialROI.representatives(points,indexes,voxel)
+            np.testing.assert_array_equal(np.sort(actual),np.sort(indexes[expected]))
+
+    def test_large_voxel_key_span_falls_back_without_integer_overflow(self):
+        points=np.array([[-1e6,-1e6,-1e6],[1e6,1e6,1e6],[0.,0.,0.],[1e6,1e6,1e6]])
+        indexes=np.arange(len(points))
+        with np.errstate(over='raise',invalid='raise'):
+            result=SpatialROI.representatives(points,indexes,.005)
+        np.testing.assert_array_equal(np.sort(result),[0,1,2])
+
     def test_invalid_schema_values_and_coordinate_scope_are_rejected(self):
         for value in ([],False,'130'):
             with self.assertRaises(ValueError):SpatialROI(value)
