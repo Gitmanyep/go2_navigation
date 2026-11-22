@@ -1,0 +1,24 @@
+{
+  "recorded_at": "2026-11-22T19:49:16.719549+08:00",
+  "base_commit": "b5ed549cad25176da6336aa97a497888bc3cc663",
+  "problem": "first real scan conversion produced about 16000 points but queued decoding and serialization expired before display",
+  "changes": [
+    "decode newest pose-covered scan only",
+    "single-thread display math libraries",
+    "NumPy PointCloud2 decoding and encoding",
+    "check source deadline before publishing"
+  ],
+  "software_checks": 232,
+  "all_passed": true,
+  "test_log": "logs/20261122_194848_test_87840010",
+  "source_age_threshold_unchanged": 0.5,
+  "hardware_acceptance": "pending performance recheck after deployment",
+  "motion_commands_sent": 0,
+  "source_sha256": {
+    "perception/dense_node.py": "2afdd910739733bc05f08733850a8daa808d3b6ceaa24be7a984e0043467aa3d",
+    "perception/dense_preview.py": "6eeee3ac2270ad6ed9afddb3fc55bc75c14a60fbfd043760adbe7e076ee68c28",
+    "perception/reference_preview.py": "b6b8a2bcb97e797ce174330bc0b3670016e3352b3bb423c4e237092a95be1751",
+    "perception/ros_messages.py": "065df41b0ea0e2384bd1b398bbd03b3bf76a61cd16ca82aa99471fdd01bf0645",
+    "perception/ros_node.py": "80d442ef014b61a62521169ff8729258a3c31f69cb8cdb589fed8e31b32e4afb"
+  }
+}

@@ -139,7 +139,7 @@ def preview_messages(snapshot):
     import rospy
     from std_msgs.msg import Header
     from geometry_msgs.msg import Point
-    from sensor_msgs import point_cloud2
+    from perception.dense_cloud import xyz_message
     from visualization_msgs.msg import Marker
     header = Header()
     header.frame_id = snapshot['frame']
@@ -148,9 +148,9 @@ def preview_messages(snapshot):
     reference = snapshot['reference_pose'] if valid else None
     minimum = snapshot['elevation_points'] if valid else np.empty((0, 3))
     maximum = snapshot['maximum_points'] if valid else np.empty((0, 3))
-    result = dict(points=point_cloud2.create_cloud_xyz32(header, snapshot['obstacle_points'].tolist() if valid else []),
-                  lowest_returns=point_cloud2.create_cloud_xyz32(header, minimum.tolist()),
-                  highest_returns=point_cloud2.create_cloud_xyz32(header, maximum.tolist()))
+    result = dict(points=xyz_message(header, snapshot['obstacle_points'] if valid else np.empty((0,3))),
+                  lowest_returns=xyz_message(header, minimum),
+                  highest_returns=xyz_message(header, maximum))
     boundary = Marker()
     boundary.header = header
     boundary.ns = 'uncalibrated_window'

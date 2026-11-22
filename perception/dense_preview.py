@@ -2,6 +2,7 @@
 """Supervise only the dense display converter and uncalibrated return preview."""
 import argparse
 import json
+import os
 from pathlib import Path
 import signal
 import subprocess
@@ -22,12 +23,12 @@ def main():
     for sig in (signal.SIGINT,signal.SIGTERM,signal.SIGHUP):signal.signal(sig,stop)
     commands=[('dense',[sys.executable,str(ROOT/'perception/dense_node.py'),'--settings',str(a.settings),'--output',str(a.output/'dense')]),
               ('preview',[sys.executable,str(ROOT/'perception/ros_node.py'),'--reference-preview','--settings',str(a.settings),'--output',str(a.output/'preview')])]
-    meta=dict(mode='dense_visualization_only',commands=commands,motion_commands_sent=0,control_ownership_changed=False)
+    meta=dict(mode='dense_visualization_only',commands=commands,motion_commands_sent=0,control_ownership_changed=False,display_math_threads=1)
     code=0;started=time.monotonic()
     try:
         for name,command in commands:
             log=(a.output/(name+'_terminal.log')).open('w',buffering=1);streams.append(log)
-            child=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT);children.append(child)
+            child=subprocess.Popen(command,stdout=log,stderr=subprocess.STDOUT,env=dict(os.environ,OPENBLAS_NUM_THREADS='1',OMP_NUM_THREADS='1',MKL_NUM_THREADS='1'));children.append(child)
             print('DENSE_PREVIEW_CHILD',name,'PID',child.pid,'LOG',str(a.output/(name+'_terminal.log')),flush=True)
         meta['child_pids']=[c.pid for c in children]
         (a.output/'metadata.json').write_text(json.dumps(meta,indent=2)+'\n')

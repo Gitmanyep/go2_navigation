@@ -132,7 +132,14 @@ class ReferencePreviewTests(unittest.TestCase):
         module('std_msgs');module('std_msgs.msg',Header=lambda:NS(),String=lambda data:NS(data=data))
         module('nav_msgs');module('nav_msgs.msg',Odometry=object,OccupancyGrid=object)
         module('geometry_msgs');module('geometry_msgs.msg',PoseStamped=object,Point=lambda **kw:NS(**kw))
-        sensor=module('sensor_msgs');module('sensor_msgs.msg',PointCloud2=object,Imu=object)
+        class BinaryCloud:
+            def __setattr__(self,key,value):
+                object.__setattr__(self,key,value)
+                if key=='data':object.__setattr__(self,'points',np.frombuffer(value,dtype='<f4').reshape(-1,3).tolist())
+        class Field:
+            FLOAT32=7
+            def __init__(self,**kw):self.__dict__.update(kw)
+        sensor=module('sensor_msgs');module('sensor_msgs.msg',PointCloud2=BinaryCloud,PointField=Field,Imu=object)
         sensor.point_cloud2=NS(read_points=lambda msg,**kw:iter(msg.points),create_cloud_xyz32=lambda h,p:NS(header=h,points=p))
         module('tf2_msgs');module('tf2_msgs.msg',TFMessage=object)
         module('visualization_msgs');module('visualization_msgs.msg',Marker=Marker)

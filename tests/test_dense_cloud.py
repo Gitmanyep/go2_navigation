@@ -108,6 +108,38 @@ class DenseCloudTests(unittest.TestCase):
             self.assertEqual(cloud.header,'source_header');self.assertEqual(cloud.row_step,24)
             self.assertEqual([f.offset for f in cloud.fields],[0,4,8])
             self.assertEqual(xyz_message('old_source',[]).width,0)
+    def test_numpy_xyz_decoder_handles_endian_offsets_and_row_padding(self):
+        import struct
+        from perception.ros_messages import pointcloud_xyz
+        fields=[NS(name=n,offset=o,datatype=7,count=1) for n,o in [('x',4),('y',8),('z',16)]]
+        data=bytearray(112);expected=[]
+        for row in range(2):
+            for col in range(2):
+                p=[row*2+col+.1,row+1.,col+2.];expected.append(p)
+                for offset,value in zip([4,8,16],p):struct.pack_into('>f',data,row*56+col*24+offset,value)
+        msg=NS(width=2,height=2,point_step=24,row_step=56,is_bigendian=True,data=bytes(data),fields=fields)
+        np.testing.assert_allclose(pointcloud_xyz(msg),expected,rtol=1e-6)
+
+    def test_numpy_xyz_decoder_rejects_truncation_and_field_errors(self):
+        from perception.ros_messages import pointcloud_xyz
+        msg=NS(width=1,height=1,point_step=12,row_step=12,is_bigendian=False,data=bytes(11),fields=[NS(name=n,offset=i*4,datatype=7,count=1) for i,n in enumerate(('x','y','z'))])
+        with self.assertRaises(ValueError):pointcloud_xyz(msg)
+        msg.data=bytes(12);msg.fields[-1].datatype=3
+        with self.assertRaises(ValueError):pointcloud_xyz(msg)
+
+    def test_numpy_xyz_decoder_preserves_nonfinite_for_input_rejection(self):
+        from perception.ros_messages import pointcloud_xyz
+        xyz=np.array([[1.,np.nan,np.inf]],dtype='<f4')
+        msg=NS(width=1,height=1,point_step=12,row_step=12,is_bigendian=False,data=xyz.tobytes(),fields=[NS(name=n,offset=i*4,datatype=7,count=1) for i,n in enumerate(('x','y','z'))])
+        result=pointcloud_xyz(msg);self.assertTrue(np.isnan(result[0,1]));self.assertTrue(np.isinf(result[0,2]))
+
+    def test_numpy_xyz_decoder_accepts_float64_and_empty_clouds(self):
+        from perception.ros_messages import pointcloud_xyz
+        xyz=np.array([[1.,2.,3.]],dtype='<f8')
+        msg=NS(width=1,height=1,point_step=24,row_step=24,is_bigendian=False,data=xyz.tobytes(),fields=[NS(name=n,offset=i*8,datatype=8,count=1) for i,n in enumerate(('x','y','z'))])
+        np.testing.assert_allclose(pointcloud_xyz(msg),[[1.,2.,3.]])
+        msg.width=0;msg.data=b'';self.assertEqual(pointcloud_xyz(msg).shape,(0,3))
+
     def test_supervisor_failure_stops_other_child(self):
         from perception import dense_preview
         made=[]
@@ -133,7 +165,8 @@ class DenseCloudTests(unittest.TestCase):
             if topic=='/aft_mapped_to_init':
                 for stamp in [99.95,100.1]:
                     callback(NS(header=NS(stamp=NS(to_sec=lambda stamp=stamp:stamp),frame_id='camera_init'),child_frame_id='body',pose=NS(pose=NS(position=NS(x=0.,y=0.,z=0.),orientation=NS(x=0.,y=0.,z=0.,w=1.)))))
-            if topic=='/livox/lidar':callback(self.raw())
+            if topic=='/livox/lidar':
+                callback(self.raw());callback(self.raw(100.05))
             return NS()
         param={('/laserMapping/mapping/'+k):v for k,v in self.params.items() if k!='scan_line'};param['/laserMapping/preprocess/scan_line']=4
         module('rospy',Time=NS(now=lambda:NS(to_sec=lambda:100.12+time.monotonic()-start),from_sec=lambda x:x),get_param=lambda key:param[key],myargv=lambda:sys.argv,init_node=lambda name:None,

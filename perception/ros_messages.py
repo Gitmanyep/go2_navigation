@@ -18,3 +18,25 @@ def messages(snapshot):
         pose.pose.orientation.x,pose.pose.orientation.y,pose.pose.orientation.z,pose.pose.orientation.w=p['quaternion']
         result['body_pose']=pose
     return result
+
+
+def pointcloud_xyz(msg):
+    """Decode XYZ as NumPy views, respecting ROS field offsets, endian and row padding."""
+    import numpy as np
+    if not hasattr(msg,'data'):
+        # ROS-like test/custom transports can supply read_points without binary storage.
+        from sensor_msgs import point_cloud2
+        return np.asarray(list(point_cloud2.read_points(msg,field_names=('x','y','z'),skip_nans=False)),float)
+    if msg.width==0 or msg.height==0:return np.empty((0,3))
+    fields={f.name:f for f in msg.fields};formats=[];offsets=[]
+    for name in ('x','y','z'):
+        f=fields.get(name)
+        if f is None or f.count!=1 or f.datatype not in (7,8):raise ValueError('unsupported XYZ field')
+        size=4 if f.datatype==7 else 8
+        if f.offset<0 or f.offset+size>msg.point_step:raise ValueError('invalid XYZ field offset')
+        formats.append(('>' if msg.is_bigendian else '<')+('f4' if size==4 else 'f8'));offsets.append(f.offset)
+    if msg.row_step<msg.width*msg.point_step or len(msg.data)<(msg.height-1)*msg.row_step+msg.width*msg.point_step:
+        raise ValueError('truncated or invalid PointCloud2 row layout')
+    dtype=np.dtype(dict(names=['x','y','z'],formats=formats,offsets=offsets,itemsize=msg.point_step))
+    view=np.ndarray((msg.height,msg.width),dtype=dtype,buffer=msg.data,strides=(msg.row_step,msg.point_step))
+    return np.column_stack([view[name].ravel() for name in ('x','y','z')]).astype(float,copy=False)

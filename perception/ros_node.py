@@ -24,7 +24,7 @@ def main():
     from geometry_msgs.msg import PoseStamped
     from std_msgs.msg import String
     from tf2_msgs.msg import TFMessage
-    from perception.ros_messages import messages
+    from perception.ros_messages import messages,pointcloud_xyz
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--settings',type=Path,required=True);p.add_argument('--calibration',type=Path)
     p.add_argument('--output',type=Path,required=True)
@@ -109,7 +109,7 @@ def main():
                     ok=engine.pose_input(stamp,[pp.x,pp.y,pp.z],[q.x,q.y,q.z,q.w],frame,msg.child_frame_id,wall,mono)
                 elif kind=='cloud':
                     if msg.width*msg.height>settings['max_cloud_points']:raise ValueError('oversize_cloud')
-                    points=np.asarray(list(point_cloud2.read_points(msg,field_names=('x','y','z'),skip_nans=False)),float)
+                    points=pointcloud_xyz(msg)
                     ok=engine.cloud_input(stamp,points,frame,wall,mono)
                 else:ok=engine.audit.observe(kind,stamp,wall,mono,frame)
             reason=engine.audit.topics.get(kind,{}).get('reason') if not ok else None

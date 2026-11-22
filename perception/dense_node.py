@@ -65,7 +65,17 @@ def main():
             for msg,rwall,rmono in ps:
                 pp=msg.pose.pose.position;q=msg.pose.pose.orientation
                 engine.pose_input(msg.header.stamp.to_sec(),[pp.x,pp.y,pp.z],[q.x,q.y,q.z,q.w],msg.header.frame_id,msg.child_frame_id,rwall,rmono)
-            for msg,rwall,rmono in rs:
+            # Decode only the newest raw scan already covered by the pose buffer.
+            # Decoding every queued 20k-point message before dropping it creates backlog.
+            chosen=None
+            for item in reversed(rs):
+                msg,rwall,rmono=item
+                end=msg.header.stamp.to_sec()+max((q.offset_time for q in msg.points),default=0)*1e-9
+                if engine.poses and end<=engine.poses[-1].stamp+1e-7:
+                    chosen=item;break
+            if chosen is not None:
+                drops['superseded_scans']+=len(rs)-1
+                msg,rwall,rmono=chosen
                 try:
                     frame=engine.decode(msg,rwall,rmono)
                     if len(pending)==pending.maxlen:drops['superseded_scans']+=1
@@ -74,13 +84,19 @@ def main():
                     engine.last_reason=str(exc);drops['expired_or_rejected']+=1
                     if 'raw' in engine.audit.topics:engine.audit.reject('raw',str(exc))
                     writer.writerow([msg.header.stamp.to_sec(),None,msg.point_num,0,0,str(exc)])
+            elif rs:
+                # Keep unmatched scans bounded while waiting for the upper pose bracket.
+                with lock:
+                    for item in reversed(rs):
+                        if len(raw)==raw.maxlen:break
+                        raw.appendleft(item)
             while pending and wall-pending[0]['stamp']>settings['max_source_age_s']:
                 pending.popleft();drops['expired_or_rejected']+=1;engine.last_reason='raw_scan_expired'
             selected=None;points=None
             for index in range(len(pending)-1,-1,-1):
                 frame=pending[index]
                 try:
-                    before=time.monotonic();points=engine.project(frame,wall,started)
+                    before=time.monotonic();points=engine.project(frame,rospy.Time.now().to_sec(),before)
                     engine.processing_ms=(time.monotonic()-before)*1000;selected=index;break
                 except ValueError as exc:
                     engine.last_reason=str(exc)
@@ -89,7 +105,9 @@ def main():
                 frame=pending.popleft();last_output=frame
                 # The OLDEST point source time sets the freshness lease, not publication time.
                 deadline=frame['mono']+settings['max_source_age_s']-max(0.,frame['wall']-frame['stamp'])
-                pub.publish(xyz_message(header(frame['end']),points));last_valid=True
+                if time.monotonic()<=deadline:
+                    pub.publish(xyz_message(header(frame['end']),points));last_valid=True
+                else:engine.last_reason='dense_processing_deadline_expired'
                 writer.writerow([frame['stamp'],frame['end'],frame['input_points'],len(points),engine.processing_ms,'published'])
             if started>=next_params:
                 if parameters()!=params:engine.reset_reason='PointLIO_internal_extrinsics_changed_restart_required'
