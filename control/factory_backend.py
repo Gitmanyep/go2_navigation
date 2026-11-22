@@ -57,7 +57,8 @@ class FactoryVelocityClient:
 
     def _result(self, operation, code, reply_expected=True):
         self.emit('sdk_result', backend=self.backend, operation=operation, code=code,
-                  reply_expected=reply_expected, physical_motion_confirmed=False)
+                  reply_expected=reply_expected, physical_motion_confirmed=False,
+                  feedback=self.feedback.snapshot())
         return code
 
     def _require_zero(self):

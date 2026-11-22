@@ -156,8 +156,11 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--live',action='store_true',help='Connect to factory SDK; movement only after a button click')
     p.add_argument('--iface',default='eth0')
+    p.add_argument('--pulse-seconds',type=float,choices=(.3,.5),default=.3,
+                   help='Initial short-pulse duration; hard maximum remains 0.5 seconds')
     args=p.parse_args()
     log=SessionLog(args.live)
+    log.meta['initial_pulse_s']=args.pulse_seconds;log.save()
     lockfile=None
     try:
         if args.live:
@@ -201,7 +204,12 @@ def main():
     thread=threading.Thread(target=worker,daemon=True);thread.start()
     panel=ttk.Frame(root,padding=20);panel.pack(fill='both',expand=True)
     ttk.Label(panel,text='实机短动作控制' if args.live else '预览模式：不会发送机器人指令',font=(family,16)).pack(pady=6)
-    ttk.Label(panel,text='每次点击约 0.3 秒；前后速度 0.1 米/秒；转向速度 0.25 弧度/秒。').pack(pady=4)
+    ttk.Label(panel,text='前后请求速度 0.1 米/秒；转向请求速度 0.25 弧度/秒。').pack(pady=4)
+    duration=tk.StringVar(value='%.1f'%args.pulse_seconds)
+    duration_row=ttk.Frame(panel);duration_row.pack(pady=4)
+    ttk.Label(duration_row,text='本次短动作时长（秒）：').pack(side='left')
+    duration_box=ttk.Combobox(duration_row,textvariable=duration,values=('0.3','0.5'),state='readonly',width=5)
+    duration_box.pack(side='left')
     if args.live:
         ttk.Label(panel,text='当前通道：'+client.backend+'；原厂避障：'+('开启（保持原状）' if client.avoidance_enabled else '关闭（保持原状）')).pack(pady=4)
         ttk.Label(panel,text='先确认站稳并接管，再点一个方向；动作结束交还 API 指令源。\n接管期间遥控接管效果须现场验证，停止异常时用原厂遥控器处理。',foreground='#a34a00',justify='center').pack(pady=4)
@@ -226,7 +234,7 @@ def main():
     direction_buttons=[]
     def action(name):
         try:
-            if controller.request(DIRECTIONS[name]):status.set(('执行：' if args.live else '预览：')+name)
+            if controller.request(DIRECTIONS[name],duration=float(duration.get())):status.set(('发送请求：' if args.live else '预览：')+name)
         except Exception as e:status.set(str(e))
     for name,text,row,col in [('forward','前进 ↑',0,1),('left','左转 ↶',1,0),('right','右转 ↷',1,2),('backward','后退 ↓',2,1)]:
         button=ttk.Button(grid,text=text,width=16,command=lambda n=name:action(n))
@@ -245,6 +253,7 @@ def main():
     root.bind('<FocusOut>',lambda e:root.after(25,check_focus))
     def refresh():
         s=controller.state()
+        duration_box.configure(state='disabled' if s['active'] or (args.live and client.armed) else 'readonly')
         if args.live:
             armed=client.armed and not client.needs_release()
             for button in direction_buttons:button.configure(state='normal' if armed and not s['fault'] and not s['active'] else 'disabled')

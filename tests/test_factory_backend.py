@@ -73,6 +73,15 @@ class FactoryBackendTests(unittest.TestCase):
         self.client.arm();self.events.clear();self.client.Move(.1,0.,0.)
         self.assertEqual(self.events, [('avoid_move',(.1,0.,0.))])
 
+    def test_move_result_includes_feedback_but_never_execution_confirmation(self):
+        records=[]
+        self.client.emit=lambda event,**values:records.append(dict(event=event,**values))
+        self.client.arm();records.clear();self.client.Move(.1,0.,0.)
+        self.assertEqual(records[0]['code'],0)
+        self.assertFalse(records[0]['reply_expected'])
+        self.assertFalse(records[0]['physical_motion_confirmed'])
+        self.assertEqual(records[0]['feedback']['velocity'],[0.,0.,0.])
+
     def test_disabled_avoidance_uses_sport_without_toggling_source(self):
         self.client.avoidance_enabled = self.avoid.enabled = False
         self.client.arm();self.events.clear();self.client.Move(.1,0.,0.)
