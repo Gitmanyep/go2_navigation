@@ -161,6 +161,29 @@ class FactoryBackendTests(unittest.TestCase):
         self.feedback.observe(SimpleNamespace(mode=0,error_code=9999,body_height=.2,velocity=[0.,0.,0.]))
         self.assertEqual(self.feedback.require_test_height()['error_code'],9999)
 
+    def test_one_second_pulse_stops_at_deadline_and_releases(self):
+        self.client.arm()
+        controller=PulseController(self.client,clock=lambda:self.t[0])
+        controller.request((.1,0.,0.),duration=1.)
+        controller.tick()
+        self.t[0]=.95;self.observe();controller.tick()
+        self.assertTrue(controller.active)
+        self.t[0]=1.;self.observe();controller.tick()
+        self.assertFalse(controller.active)
+        self.assertFalse(self.client.api_owned)
+        self.assertIsNone(controller.fault)
+        self.assertEqual(self.events[-2:],[('sport_stop',),('source',False)])
+
+    def test_duration_above_one_second_is_rejected_and_cancels_active_pulse(self):
+        self.client.arm()
+        controller=PulseController(self.client,clock=lambda:self.t[0])
+        controller.request((.1,0.,0.),duration=1.)
+        with self.assertRaises(ValueError):controller.request((.1,0.,0.),duration=1.0001)
+        controller.tick()
+        self.assertFalse(controller.active)
+        self.assertFalse(self.client.api_owned)
+        self.assertNotIn(('avoid_move',(.1,0.,0.)),self.events)
+
     def test_stale_feedback_prevents_arm(self):
         self.t[0]=.31
         with self.assertRaises(RuntimeError):self.client.arm()

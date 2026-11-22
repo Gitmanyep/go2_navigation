@@ -4,6 +4,9 @@ import argparse, datetime, fcntl, hashlib, json, math, os, signal, sys
 import threading, time
 from pathlib import Path
 
+PULSE_DURATIONS = (.3, .5, 1.)
+MAX_PULSE_S = max(PULSE_DURATIONS)
+
 DIRECTIONS = {'forward': (.1,0.,0.), 'backward': (-.1,0.,0.),
               'left': (0.,0.,.25), 'right': (0.,0.,-.25)}
 
@@ -26,8 +29,8 @@ class PulseController:
                     raise ValueError('Command must contain finite numbers')
                 if math.hypot(v[0],v[1]) > .100001 or abs(v[2]) > .400001:
                     raise ValueError('Speed exceeds manual test limits')
-                if not .05 <= duration <= .5:
-                    raise ValueError('Duration must be between 0.05 and 0.5 seconds')
+                if not .05 <= duration <= MAX_PULSE_S:
+                    raise ValueError('Duration must be between 0.05 and %s seconds' % MAX_PULSE_S)
             except (TypeError,ValueError,OverflowError) as e:
                 self.active = False
                 self.pending_stop = True
@@ -105,7 +108,7 @@ class SessionLog:
         self.stream=(self.root/'events.jsonl').open('a',buffering=1)
         self.meta={'started_at':now.isoformat(),'argv':sys.argv,'pid':os.getpid(),
                    'mode':'live' if live else 'preview','script_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                   'linear_limit_mps':.1,'angular_limit_radps':.4,'pulse_limit_s':.5,
+                   'linear_limit_mps':.1,'angular_limit_radps':.4,'pulse_limit_s':MAX_PULSE_S,
                    'automatic_obstacle_avoidance':False}
         self.save()
     def save(self):
@@ -156,8 +159,8 @@ def main():
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--live',action='store_true',help='Connect to factory SDK; movement only after a button click')
     p.add_argument('--iface',default='eth0')
-    p.add_argument('--pulse-seconds',type=float,choices=(.3,.5),default=.3,
-                   help='Initial short-pulse duration; hard maximum remains 0.5 seconds')
+    p.add_argument('--pulse-seconds',type=float,choices=PULSE_DURATIONS,default=.3,
+                   help='Initial short-pulse duration; hard maximum is 1.0 second')
     args=p.parse_args()
     log=SessionLog(args.live)
     log.meta['initial_pulse_s']=args.pulse_seconds;log.save()
@@ -209,7 +212,7 @@ def main():
     duration=tk.StringVar(value='%.1f'%args.pulse_seconds)
     duration_row=ttk.Frame(panel);duration_row.pack(pady=4)
     ttk.Label(duration_row,text='本次短动作时长（秒）：').pack(side='left')
-    duration_box=ttk.Combobox(duration_row,textvariable=duration,values=('0.3','0.5'),state='readonly',width=5)
+    duration_box=ttk.Combobox(duration_row,textvariable=duration,values=tuple('%.1f'%x for x in PULSE_DURATIONS),state='readonly',width=5)
     duration_box.pack(side='left')
     if args.live:
         ttk.Label(panel,text='当前通道：'+client.backend+'；原厂避障：'+('开启（保持原状）' if client.avoidance_enabled else '关闭（保持原状）')).pack(pady=4)
