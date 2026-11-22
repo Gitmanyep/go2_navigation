@@ -10,7 +10,7 @@
 |---|---|---|
 | 完整 v3 仿真、导航源码、GUI、回放与回归测试 | `navigation/` | 是 |
 | v3 原始场景报告、轨迹、地图快照、图像和验收材料 | `navigation/validation/` | 是，作为该版本的历史验证基线 |
-| 手动面板、早期方向转换工具与测试 | `control/` | 是；方向转换工具是历史接口示例，导航使用自身 DirectionManager |
+| 手动面板、只读监测、早期方向转换工具与测试 | `control/` | 是；方向转换工具是历史接口示例，导航使用自身 DirectionManager |
 | 唯一启动入口、日志与部署工具 | `bin/`、`scripts/` | 是 |
 | 固定依赖、ROS 包与启动配置 | `config/`、`package.xml`、`launch/` | 是 |
 | 导入来源、逐文件 SHA256、历史验收摘要 | `provenance/` | 是 |
@@ -84,6 +84,28 @@ cd /media/leon/新加卷/dog_project/go2_navigation
 实机入口明确使用 `/home/unitree/miniforge3/envs/rl/bin/python` 和 `/home/unitree/unitree_sdk2_python`，并记录 SDK 提交和修改状态。面板未接入本仓库的导航避障，导航候选速度不会自动送给它。
 
 手动面板按钮事件另存在 `~/go2_logs/manual_panel_*/`。程序仅防止自身副本的重复实例，无法排除其它旧工具或其它电脑的控制程序。
+
+## 只读速度监测
+
+监测窗口与手动面板独立，只订阅 `rt/sportmodestate`，不接管或发送控制指令。机载未连接时可先在笔记本验证演示：
+
+```bash
+./bin/go2-nav monitor-demo
+```
+
+机载更新到包含监测工具的提交后，在 NoMachine 的另一个终端运行：
+
+```bash
+/home/unitree/go2_navigation_github/bin/go2-nav monitor --iface eth0
+```
+
+测试前点击“重置统计起点”，切回手动面板进行一次动作，完成后回监测窗口点击“保存当前统计”。手动面板失去焦点会请求停止，因此应在动作之前切回它，动作过程中不要切换窗口。也可让队友使用原厂遥控器控制，监测窗口一直只读。
+
+显示平面速度、原始速度分量、转向角速度、速度峰值、相对起点直线位移、累计航向变化及历史曲线。位移与航向均来自机内估计，可能漂移或重置，不是独立地面真值；未标定坐标系时不把原始 vx 当作机身前向速度。缺少的字段显示不可用，接收超过 0.3s 未更新时当前速度显示过期，不显示为零。接收新鲜也不能证明源状态未缓存。
+
+原始状态按约 20Hz 保存到本次 `logs/.../telemetry/feedback.csv`，统计在 `segments.jsonl`，峰值是采样峰值。重置只开始新统计段，不删除旧数据。首轮仍应以已知距离或录像检查估计是否可信。本窗口不自动计算制动距离，也不保证记录每次 DDS 更新；它不改变运动时长、速度、原厂避障或关节参数。
+
+无桌面时可以限定时长只记录：`./bin/go2-nav monitor --iface eth0 --headless --seconds 30`。离线对应 `monitor-demo --headless --seconds 2`，演示数据始终标记为 synthetic。
 
 ## SSH 断开与停止
 

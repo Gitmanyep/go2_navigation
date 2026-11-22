@@ -45,7 +45,7 @@ def doctor():
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('mode', nargs='?', default='doctor', choices=(
-        'doctor', 'test', 'sim', 'gui', 'preview', 'manual-preview', 'manual-live'))
+        'doctor', 'test', 'sim', 'gui', 'preview', 'manual-preview', 'manual-live', 'monitor', 'monitor-demo'))
     p.add_argument('--config', type=Path, default=ROOT/'navigation/config.json')
     p.add_argument('--log-root', type=Path, default=ROOT/'logs')
     a, extra = p.parse_known_args()
@@ -57,6 +57,8 @@ def main():
     if a.mode in ('preview', 'sim', 'gui') and any(
             x in ('--mode', '--config', '--output') or x.startswith(('--mode=', '--config=', '--output=')) for x in extra):
         p.error('use the top-level mode/--config; output is managed by the launcher')
+    if a.mode in ('monitor','monitor-demo') and any(x=='--output' or x.startswith('--output=') for x in extra):
+        p.error('monitor output is managed by the launcher')
     if a.mode == 'manual-preview' and '--live' in extra:
         p.error('use manual-live explicitly')
     now = datetime.datetime.now().astimezone()
@@ -69,7 +71,7 @@ def main():
                 config=str(cfg_path), config_sha256=hashlib.sha256(cfg_bytes).hexdigest(),
                 host=platform.node(), architecture=platform.machine(), python=sys.executable, launcher_pid=os.getpid(),
                 robot_motion_backend_enabled=(a.mode == 'manual-live'))
-    if a.mode == 'manual-live':
+    if a.mode in ('manual-live','monitor'):
         sdk = Path('/home/unitree/unitree_sdk2_python')
         meta['sdk_path'] = str(sdk)
         for key, args in [('sdk_commit', ['rev-parse', 'HEAD']), ('sdk_changes', ['status', '--porcelain'])]:
@@ -112,7 +114,7 @@ def main():
         commands = [['/bin/bash', '-c', 'source /opt/ros/noetic/setup.bash; exec "$@"',
                      'go2-nav', py, str(nav/'ros_node.py'), '--mode', 'preview', '--config', str(cfg_path), *extra]]
     else:
-        if a.mode == 'manual-live':
+        if a.mode in ('manual-live','monitor'):
             py = '/home/unitree/miniforge3/envs/rl/bin/python'
             env.pop('PYTHONNOUSERSITE', None)
             sdk = '/home/unitree/unitree_sdk2_python'
@@ -120,8 +122,12 @@ def main():
             env['PYTHONPATH'] = sdk
             env['CYCLONEDDS_HOME'] = '/home/unitree/cyclonedds/install'
             env['LD_LIBRARY_PATH'] = '/home/unitree/cyclonedds/install/lib'+(':'+env['LD_LIBRARY_PATH'] if env.get('LD_LIBRARY_PATH') else '')
-        commands = [[py, str(ROOT/'control/manual_panel.py'),
-                     *(['--live'] if a.mode == 'manual-live' else []), *extra]]
+        if a.mode in ('monitor','monitor-demo'):
+            commands = [[py,str(ROOT/'control/telemetry_monitor.py'),
+                         '--live' if a.mode=='monitor' else '--demo','--output',str(run/'telemetry'),*extra]]
+        else:
+            commands = [[py, str(ROOT/'control/manual_panel.py'),
+                         *(['--live'] if a.mode == 'manual-live' else []), *extra]]
     meta['commands'] = commands
     save()
     child = None
