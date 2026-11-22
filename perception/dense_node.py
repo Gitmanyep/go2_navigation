@@ -12,13 +12,12 @@ import time
 import numpy as np
 ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
-from perception.dense_cloud import DenseProjector,xyz_message
+from perception.dense_cloud import DenseProjector,xyz_message,raw_packet
 from perception.pipeline import load_settings
 
 
 def main():
     import rospy
-    from livox_ros_driver2.msg import CustomMsg
     from nav_msgs.msg import Odometry
     from std_msgs.msg import Header,String
     from sensor_msgs.msg import PointCloud2
@@ -50,9 +49,9 @@ def main():
             if len(raw)==raw.maxlen:drops['raw_callback']+=1
             raw.append((m,wall,mono))
     subscribers=[rospy.Subscriber(settings['topics']['odom'],Odometry,receive_pose,queue_size=100),
-                 rospy.Subscriber(d['raw_topic'],CustomMsg,receive_raw,queue_size=1,buff_size=2**24)]
+                 rospy.Subscriber(d['raw_topic'],rospy.AnyMsg,receive_raw,queue_size=1,buff_size=2**24)]
     pending=deque(maxlen=d['queue_size']);last_output=None;last_valid=False;deadline=-math.inf;next_report=0.;next_params=0.
-    period=.2
+    period=.1
     stream=(a.output/'frames.csv').open('w',newline='',buffering=1);writer=csv.writer(stream)
     writer.writerow(['scan_begin','scan_end','raw_points','output_points','processing_ms','result'])
     status_log=(a.output/'status.jsonl').open('w',buffering=1);last_status={}
@@ -67,15 +66,22 @@ def main():
                 engine.pose_input(msg.header.stamp.to_sec(),[pp.x,pp.y,pp.z],[q.x,q.y,q.z,q.w],msg.header.frame_id,msg.child_frame_id,rwall,rmono)
             # Decode only the newest raw scan already covered by the pose buffer.
             # Decoding every queued 20k-point message before dropping it creates backlog.
-            chosen=None
-            for item in reversed(rs):
+            decoded_headers=[]
+            for item in rs:
                 msg,rwall,rmono=item
-                end=msg.header.stamp.to_sec()+max((q.offset_time for q in msg.points),default=0)*1e-9
-                if engine.poses and end<=engine.poses[-1].stamp+1e-7:
-                    chosen=item;break
-            if chosen is not None:
-                drops['superseded_scans']+=len(rs)-1
-                msg,rwall,rmono=chosen
+                try:packet=raw_packet(msg)
+                except (ValueError,TypeError,UnicodeError) as exc:
+                    drops['expired_or_rejected']+=1;engine.last_reason=str(exc);continue
+                if rospy.Time.now().to_sec()-packet.stamp>settings['max_source_age_s']:
+                    drops['expired_or_rejected']+=1;continue
+                decoded_headers.append((item,packet))
+            chosen_index=None
+            for index in range(len(decoded_headers)-1,-1,-1):
+                if engine.poses and decoded_headers[index][1].end<=engine.poses[-1].stamp+1e-7:
+                    chosen_index=index;break
+            if chosen_index is not None:
+                (msg,rwall,rmono),packet=decoded_headers[chosen_index]
+                drops['superseded_scans']+=chosen_index
                 try:
                     frame=engine.decode(msg,rwall,rmono)
                     if len(pending)==pending.maxlen:drops['superseded_scans']+=1
@@ -83,13 +89,15 @@ def main():
                 except (ValueError,TypeError,AttributeError) as exc:
                     engine.last_reason=str(exc);drops['expired_or_rejected']+=1
                     if 'raw' in engine.audit.topics:engine.audit.reject('raw',str(exc))
-                    writer.writerow([msg.header.stamp.to_sec(),None,msg.point_num,0,0,str(exc)])
-            elif rs:
-                # Keep unmatched scans bounded while waiting for the upper pose bracket.
-                with lock:
-                    for item in reversed(rs):
-                        if len(raw)==raw.maxlen:break
-                        raw.appendleft(item)
+                    writer.writerow([packet.stamp,None,packet.n,0,0,str(exc)])
+                remaining=decoded_headers[chosen_index+1:]
+            else:remaining=decoded_headers
+            # Preserve the newer scans waiting for an upper pose bracket, not just
+            # the current ready scan. Otherwise every other scan gets lost.
+            with lock:
+                for item,_ in reversed(remaining):
+                    if len(raw)==raw.maxlen:drops['raw_callback']+=1;continue
+                    raw.appendleft(item)
             while pending and wall-pending[0]['stamp']>settings['max_source_age_s']:
                 pending.popleft();drops['expired_or_rejected']+=1;engine.last_reason='raw_scan_expired'
             selected=None;points=None

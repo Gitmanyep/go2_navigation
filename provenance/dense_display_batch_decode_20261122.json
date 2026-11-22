@@ -1,0 +1,22 @@
+{
+  "recorded_at": "2026-11-22T19:55:47.868565+08:00",
+  "software_checks": 236,
+  "all_passed": true,
+  "test_log": "logs/20261122_195458_test_671d2d24",
+  "raw_ros_md5": "e4d6829bdfe657cb6c21a746c86b21a6",
+  "wire_schema_verified_against": "onboard livox_ros_driver2 generated _CustomMsg.py serialize and _CustomPoint.py",
+  "changes": [
+    "AnyMsg zero-copy structured decode",
+    "clip world XY to preview window before voxel reduction",
+    "retain newer unmatched scan until pose arrives",
+    "10Hz lightweight display conversion"
+  ],
+  "source_max_age_s": 0.5,
+  "pointlio_parameters_unchanged": true,
+  "motion_commands_sent": 0,
+  "source_sha256": {
+    "perception/dense_cloud.py": "5f97f8b056e5133f76a81f6fb1a7b5ef2e01020ba62f033bd5e835c3a703d308",
+    "perception/dense_node.py": "5fdb5ab5902da789f1e8f7787d85d7a3f7f258fe039755d9ba464d90bfc3404c",
+    "tests/test_dense_cloud.py": "6ccf67d5709824ffbf96c36ebd337d35b4f3feb5659682a50de7396ff6a742ca"
+  }
+}

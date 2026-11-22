@@ -13,7 +13,7 @@ from scipy.spatial.transform import Rotation
 ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
 from perception.pipeline import load_settings,Pose
-from perception.dense_cloud import DenseProjector,deskew,sensor_transform,xyz_message
+from perception.dense_cloud import DenseProjector,deskew,sensor_transform,xyz_message,raw_packet,CUSTOM_MSG_MD5
 
 
 class DenseCloudTests(unittest.TestCase):
@@ -31,6 +31,41 @@ class DenseCloudTests(unittest.TestCase):
     def bracketed(self):
         self.assertTrue(self.pose(99.95,wall=100.12));self.assertTrue(self.pose(100.1,wall=100.12))
         return self.engine.decode(self.raw(),100.12,.12)
+    def wire_message(self,msg=None):
+        import struct
+        msg=self.raw() if msg is None else msg
+        frame=msg.header.frame_id.encode();stamp=msg.header.stamp.to_sec();sec=int(stamp);ns=int(round((stamp-sec)*1e9))
+        header=struct.pack('<4I',0,sec,ns,len(frame))+frame
+        fixed=struct.pack('<QIB3BI',msg.timebase,msg.point_num,0,0,0,0,len(msg.points))
+        points=b''.join(struct.pack('<IfffBBB',p.offset_time,p.x,p.y,p.z,0,p.tag,p.line) for p in msg.points)
+        return NS(_buff=header+fixed+points,_connection_header={'type':'livox_ros_driver2/CustomMsg','md5sum':CUSTOM_MSG_MD5})
+
+    def test_raw_wire_parser_matches_typed_fields_and_projects(self):
+        msg=self.raw();binary=self.wire_message(msg);packet=raw_packet(binary)
+        self.assertEqual(packet.n,msg.point_num);self.assertEqual(packet.frame,'livox_frame')
+        np.testing.assert_allclose(packet.records['x'],[p.x for p in msg.points])
+        self.pose(99.95,wall=100.12);self.pose(100.1,wall=100.12)
+        frame=self.engine.decode(binary,100.12,.12)
+        np.testing.assert_allclose(self.engine.project(frame,100.12,.12),frame['points']+self.params['extrinsic_T'])
+
+    def test_raw_wire_parser_rejects_wrong_schema_and_truncation(self):
+        msg=self.wire_message();msg._connection_header['md5sum']='wrong'
+        with self.assertRaises(ValueError):raw_packet(msg)
+        msg=self.wire_message();msg._buff=msg._buff[:-1]
+        with self.assertRaises(ValueError):raw_packet(msg)
+
+    def test_raw_wire_parser_rejects_inconsistent_count(self):
+        import struct
+        msg=self.wire_message();data=bytearray(msg._buff);struct.pack_into('<I',data,16+len('livox_frame')+8,100)
+        msg._buff=bytes(data)
+        with self.assertRaises(ValueError):raw_packet(msg)
+
+    def test_dense_projection_limits_output_to_visual_window(self):
+        self.pose(99.95,wall=100.12);self.pose(100.1,wall=100.12)
+        msg=self.raw(points=[[1,0,0],[2,.1,0],[3,.1,0],[10,0,0]],offsets=[0,1,2,3])
+        frame=self.engine.decode(msg,100.12,.12);points=self.engine.project(frame,100.12,.12)
+        self.assertEqual(len(points),3);self.assertTrue((np.abs(points[:,:2])<3.12).all())
+
     def test_fixed_internal_extrinsics_required(self):
         for change in [dict(extrinsic_est_en=True),dict(extrinsic_T=None),dict(extrinsic_R=[1]*9),dict(extrinsic_R=np.diag([1,1,-1]).ravel().tolist())]:
             p=dict(self.params,**change)
@@ -155,7 +190,7 @@ class DenseCloudTests(unittest.TestCase):
 
     def test_actual_dense_ros_adapter_clears_expired_output(self):
         from perception import dense_node
-        modules={};pubs={};start=time.monotonic()
+        modules={};pubs={};start=time.monotonic();callbacks={};injected=[False]
         def module(name,**kw):
             m=ModuleType(name)
             for k,v in kw.items():setattr(m,k,v)
@@ -163,14 +198,20 @@ class DenseCloudTests(unittest.TestCase):
         def publisher(topic,kind,**kw):pubs[topic]=[];return NS(publish=lambda msg:pubs[topic].append(msg))
         def subscribe(topic,kind,callback,**kw):
             if topic=='/aft_mapped_to_init':
+                callbacks['pose']=callback
                 for stamp in [99.95,100.1]:
                     callback(NS(header=NS(stamp=NS(to_sec=lambda stamp=stamp:stamp),frame_id='camera_init'),child_frame_id='body',pose=NS(pose=NS(position=NS(x=0.,y=0.,z=0.),orientation=NS(x=0.,y=0.,z=0.,w=1.)))))
             if topic=='/livox/lidar':
                 callback(self.raw());callback(self.raw(100.05))
             return NS()
         param={('/laserMapping/mapping/'+k):v for k,v in self.params.items() if k!='scan_line'};param['/laserMapping/preprocess/scan_line']=4
-        module('rospy',Time=NS(now=lambda:NS(to_sec=lambda:100.12+time.monotonic()-start),from_sec=lambda x:x),get_param=lambda key:param[key],myargv=lambda:sys.argv,init_node=lambda name:None,
-               Publisher=publisher,Subscriber=subscribe,is_shutdown=lambda:time.monotonic()-start>.7)
+        def shutdown():
+            if not injected[0] and time.monotonic()-start>.18:
+                callbacks['pose'](NS(header=NS(stamp=NS(to_sec=lambda:100.2),frame_id='camera_init'),child_frame_id='body',pose=NS(pose=NS(position=NS(x=0.,y=0.,z=0.),orientation=NS(x=0.,y=0.,z=0.,w=1.)))))
+                injected[0]=True
+            return time.monotonic()-start>.7
+        module('rospy',AnyMsg=object,Time=NS(now=lambda:NS(to_sec=lambda:100.12+time.monotonic()-start),from_sec=lambda x:x),get_param=lambda key:param[key],myargv=lambda:sys.argv,init_node=lambda name:None,
+               Publisher=publisher,Subscriber=subscribe,is_shutdown=shutdown)
         module('livox_ros_driver2');module('livox_ros_driver2.msg',CustomMsg=object)
         module('nav_msgs');module('nav_msgs.msg',Odometry=object)
         module('std_msgs');module('std_msgs.msg',Header=lambda:NS(),String=lambda data:NS(data=data))
@@ -185,6 +226,7 @@ class DenseCloudTests(unittest.TestCase):
             messages=pubs['/go2/lidar_dense/registered']
             self.assertEqual(set(pubs),{'/go2/lidar_dense/registered','/go2/lidar_dense/status'})
             self.assertEqual(messages[0].width,3);self.assertEqual(messages[-1].width,0)
-            self.assertAlmostEqual(messages[-1].header.stamp,100.08)
+            self.assertTrue(any(abs(m.header.stamp-100.13)<1e-6 and m.width==3 for m in messages),'newer raw scan must survive while waiting for its upper pose bracket')
+            self.assertAlmostEqual(messages[-1].header.stamp,100.13)
             report=json.loads((output/'report.json').read_text());self.assertFalse(report['data_valid'])
             self.assertFalse(report['navigation_usable']);self.assertEqual(report['motion_commands_sent'],0)
