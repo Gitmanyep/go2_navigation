@@ -1,0 +1,12 @@
+<launch>
+  <arg name="odom_reference" default="lidar"/>
+  <arg name="cloud_topic" default="/cloud_registered"/>
+  <arg name="odom_topic" default="/aft_mapped_to_init"/>
+  <arg name="direction_topic" default="/go2/navigation/direction"/>
+  <node pkg="go2_navigation" type="go2-navigation-node" name="go2_navigation_preview" output="screen"
+        args="--odom-reference $(arg odom_reference)">
+    <remap from="/cloud_registered" to="$(arg cloud_topic)"/>
+    <remap from="/aft_mapped_to_init" to="$(arg odom_topic)"/>
+    <remap from="/go2/navigation/direction" to="$(arg direction_topic)"/>
+  </node>
+</launch>

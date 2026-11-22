@@ -1,0 +1,146 @@
+{
+  "imported_at": "2026-11-22T15:34:32.407691+08:00",
+  "source_files_unchanged": true,
+  "files": [
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/acoustic_task.py",
+      "destination": "navigation/acoustic_task.py",
+      "sha256": "44b7ea70f95b985cb24cdc0299cc3cbb04df0799e01330eba419535468bfd201"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/audit_truth.py",
+      "destination": "navigation/audit_truth.py",
+      "sha256": "5030bbeb9b62217342a3cde32fa948e51aaeafd8162b86d58548a13f23723a2d"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/benchmark.py",
+      "destination": "navigation/benchmark.py",
+      "sha256": "30ac8ac6f2e5ca7491a84440e80c68666aa8b32ac196ea0c9bdb6860d9ff928b"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/compare_maps.py",
+      "destination": "navigation/compare_maps.py",
+      "sha256": "a8e72a2eddea2414412f9f7e6f302a8cd72b48a7145ebbb34c55ac56c975a13c"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/core.py",
+      "destination": "navigation/core.py",
+      "sha256": "168adfe4a095b698f502594bf9408ef90e87b592a06d03e9a5189eff39d61bd1"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/evidence.py",
+      "destination": "navigation/evidence.py",
+      "sha256": "6760e9356d5e86c8a7217473e66f4cc666bd409ec69db90f690b05fa5396d767"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/geometry.py",
+      "destination": "navigation/geometry.py",
+      "sha256": "567186dfb2fc8009c0fa518b350511b628197445892ec748788457e477973702"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/heading_planner.py",
+      "destination": "navigation/heading_planner.py",
+      "sha256": "5f69d7d83f68abceed9c3f40369e9b1ef9227f09ab9a0757823ad67035756451"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/inspect_pcd.py",
+      "destination": "navigation/inspect_pcd.py",
+      "sha256": "5c0d17f3ecb9b9a51b8703972ef0a9fe8246486accd32a7212ab9dc9c76fab49"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/render_animation.py",
+      "destination": "navigation/render_animation.py",
+      "sha256": "3c50efd765f0eae171d7d5bfe61b6b867c5a82301c74019b0df331331ff2c21d"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/render_model.py",
+      "destination": "navigation/render_model.py",
+      "sha256": "83b2f920acfe94071725a38f26f1d40e29957750121f0bca8897b63b46a2e227"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/replay_bag.py",
+      "destination": "navigation/replay_bag.py",
+      "sha256": "1cc2e59f81da6dcdf96604293baf4c9e402b55780bb30c96e349be2965a601fd"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/ros_node.py",
+      "destination": "navigation/ros_node.py",
+      "sha256": "3c7f0fca154bf24ec00f088c9168a3ded7bdd82bbe32848bc2509fba1218c0dd"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/runtime.py",
+      "destination": "navigation/runtime.py",
+      "sha256": "f13ea43129a0192dd68ee81e0a04bc6f1b6ceff5ddebe3b0a52cc73bb6ad9489"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/simulation.py",
+      "destination": "navigation/simulation.py",
+      "sha256": "0560c80ee9fd647e740e96add7933ec79a885e78f799b9084a92b0f3b22b5c8c"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/test_core.py",
+      "destination": "navigation/test_core.py",
+      "sha256": "7a8ee6bc340de1c81e8fa032926d52497fea337159f5e413807f5e0e4e13adbe"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/test_v2.py",
+      "destination": "navigation/test_v2.py",
+      "sha256": "a53e6f9ee93af343cd4369cb0a94a1e27b5410180f146496ec937c9a8e323703"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/test_v3.py",
+      "destination": "navigation/test_v3.py",
+      "sha256": "94aff8c5d804b6e9b482501b0b81ee6fe2c6e2ede28775899b199a17a9314f4d"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/validate_cases.py",
+      "destination": "navigation/validate_cases.py",
+      "sha256": "4fe9c20ec8cf9802b7a52510b8f624727eb4751e544c32a0f3abf854e751c756"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/watchdog_probe.py",
+      "destination": "navigation/watchdog_probe.py",
+      "sha256": "b642013164e94ef613c38d6d2f08131d50f77846fd29109ae18183dfab92d9a1"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/config.json",
+      "destination": "navigation/config.json",
+      "sha256": "6ad887bee49a7c0fc80d7874272d45435ef0e561db8d89ab9a3d112765da1b4a"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/requirements.txt",
+      "destination": "navigation/requirements.txt",
+      "sha256": "a398a46f5503ad5c17c08845fa8abaaf604a1939d388487e672864952686983a"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_control_20261121/manual_panel.py",
+      "destination": "control/manual_panel.py",
+      "sha256": "fd85cf8bae6142253913924d82fbc3ce1c656f843d603303ec652664150d5276"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_control_20261121/direction_adapter.py",
+      "destination": "control/direction_adapter.py",
+      "sha256": "81ac231ae46d8ec58c968104802fe31c2571df837bee05edee09d18a88d86173"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_control_20261121/test_interfaces.py",
+      "destination": "control/test_interfaces.py",
+      "sha256": "7b7b40ae5806bdb09f8be12b2c6b738d688dde780fd47f9545746d4aa68f1e2f"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/README_zh.txt",
+      "destination": "docs/v3_original_README.txt",
+      "sha256": "df1df8d245265fe6ef9336dbba87d4596c3aea4b7d71e5af287069a819805c19"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_control_20261121/USAGE_zh.txt",
+      "destination": "docs/manual_original_USAGE.txt",
+      "sha256": "ad352db377f740108845b1f74b8c3a621021f22472da46a8736f51a9924889cd"
+    },
+    {
+      "source": "/media/leon/新加卷/dog_project/tools/go2_framework_sim_v3_20261122/validation/final_acceptance.json",
+      "destination": "provenance/v3_historical_acceptance.json",
+      "sha256": "712bccc5b51d4a9921e413020b2f77aedee72ae0d00d08544d92a0b4485bff57"
+    }
+  ]
+}

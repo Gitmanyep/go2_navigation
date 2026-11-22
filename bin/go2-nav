@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+NAV_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+NAV_PYTHON=/usr/bin/python3
+if [[ -x "$NAV_ROOT/.venv/bin/python3" ]]; then NAV_PYTHON="$NAV_ROOT/.venv/bin/python3"; fi
+exec env -u PYTHONHOME -u PYTHONPATH PYTHONNOUSERSITE=1 "$NAV_PYTHON" -u "$NAV_ROOT/scripts/run.py" "$@"

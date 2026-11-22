@@ -1,0 +1,13 @@
+#!/usr/bin/env python3
+"""Catkin bridge to the same logged, preview-only launcher."""
+import os
+from pathlib import Path
+import sys
+root = Path(__file__).resolve().parents[1]
+if not (root/'navigation').is_dir():
+    root = Path(__file__).resolve().parents[2]/'share/go2_navigation'
+python = str(root/'.venv/bin/python3') if (root/'.venv/bin/python3').exists() else '/usr/bin/python3'
+os.environ['PYTHONNOUSERSITE'] = '1'
+os.environ.pop('PYTHONPATH', None)
+os.environ.pop('PYTHONHOME', None)
+os.execv(python, [python, str(root/'scripts/run.py'), 'preview', *sys.argv[1:]])

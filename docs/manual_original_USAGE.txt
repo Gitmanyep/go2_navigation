@@ -1,0 +1,90 @@
+Go2 手动控制和声源方向接口（2026-11-21）
+
+已实现：
+1. NoMachine 中的按钮控制面板。默认预览，无 SDK 导入和实机运动输出。
+2. 原厂高层 SDK 控制后端，只有显式使用 --live 才连接；点击方向按钮后才发运动指令。
+3. 按 readme.txt 约定的声源方向消息，转换为有有效期的候选目标；不是完整路径规划器。
+
+机载目录：/home/unitree/go2_control_tools_20261121/
+原项目说明位于 /media/leon/新加卷/dog_project/readme.txt（挂载名已不是“新加卷1”）。
+不修改 smart_voice 内部，也没有修改现有 dcfnav_go2 或感知程序。
+
+手动控制：
+在 NoMachine 的终端执行：
+  /home/unitree/bin/go2-manual
+打开预览面板；桌面也有“Go2 手动控制（预览）”入口。
+
+允许运动且通过原厂方式站稳后，关闭预览面板，在 NoMachine 的终端执行：
+  /home/unitree/bin/go2-manual --live
+此命令连接原厂控制，不自动站起，不切换控制模式或关闭原厂避障。
+未确认 mcf 模式则拒绝启动。连接本身不发送运动指令。
+点击前进、后退、左转、右转执行约 0.3 秒短动作；前后速度 0.1 米/秒，转向 0.25 弧度/秒。
+动作进行时，重复点击不排队、不延长动作。按钮停止、空格、失焦、关闭或动作到期都会请求停止。
+工作线程使用单调时钟，独立于 GUI 事件循环按时结束动作。
+按钮的距离是速度与时间的请求量，不等于实测位移。
+面板不提供自动绕障；原厂避障是否生效仍需单独验收。
+本工具只阻止自身多个实机实例，并不能排除其他电脑或其他程序发运动指令。
+真实停止效果、遥控接管、主机崩溃保护尚未完成运动验收；保持原厂遥控器可接管。
+每次启动的完整命令、参数、时间和终端输出在 ~/go2_logs/ 对应带时间目录中。
+按钮事件与 SDK 返回值另存于 ~/go2_logs/manual_panel_时间_PID/。
+
+方向接口：
+ROS1 输入：/go2/navigation/direction，类型 std_msgs/String，内容为以下 JSON。
+ROS1 输出：/go2/navigation/goal_preview，同样为 JSON；仅用于查看候选目标。
+不会发布 /cmd_vel、/goal、/move_base/goal，也不会发送 Go2 指令。
+
+字段约定与原项目 README 对齐：
+  seq：严格递增整数，重复或倒退拒绝。
+  stamp_sec：真实采集时刻的 Unix 秒；跨电脑时必须约定时钟同步。
+  frame_id：body 或 mic_array。
+  kind：direction。
+  vector：[x,y,z]，表示声源方向，不代表已知距离；会归一化。
+  confidence：0 到 1 的置信评分，本预览默认要求至少 0.6。
+  valid：布尔值。
+body 坐标规定 x 向狗前、y 向狗左、z 向上，不能按屏幕或雷达外壳方向猜坐标。
+若队友给 mic_array 坐标，必须提供真实标定的麦克风到机身旋转矩阵；未提供时拒绝。
+相对位置或全局位置属于另一种消息含义，本版不会把它们混成方向。
+
+示例（stamp_sec 必须替换为真实采集时刻，不能照抄旧时间）：
+{"seq":17,"stamp_sec":1795254000.0,"frame_id":"body","kind":"direction","vector":[1,-1,0.2],"confidence":0.9,"valid":true}
+
+默认保守预览参数：方向有效期 0.5 秒，允许未来时差最多 0.05 秒；位姿和消息时间差最多 0.12 秒。
+这些是初始验证设置，不是经过运动标定的通用阈值。
+使用消息时刻附近的真实里程计，转换方向，沿水平投影生成 0.5 米的候选位置；保留原三维方向和仰角。
+候选高度暂保持当前机身参考高度，必须经地形和碰撞检查后，才能形成可执行目标。
+方向近乎垂直、无效、过期、低置信度、重复或坐标未标定时输出 waiting 并清除候选。
+ROS 节点还使用单调时钟限制候选有效期，系统时钟回拨不能无限延长有效期。
+候选结果固定标记 executable=false、route_status=not_planned；需要接规划器和路径跟踪后才能导航。
+不会把鸟的空间高度直接当作机器人应该到达的高度。
+
+ROS 节点启动（当前已启动一个预览实例，不要重复启动）：
+  source /opt/ros/noetic/setup.bash
+  /usr/bin/python3 /home/unitree/go2_control_tools_20261121/direction_adapter.py --ros
+如果有已标定的 3x3 旋转矩阵 JSON 文件，加 --mic-rotation-file 文件路径。
+
+不需要 ROS 的程序接口：
+  from direction_adapter import DirectionAdapter
+  result = DirectionAdapter().convert(message, pose_at_message, now=unix_time)
+pose_at_message 的字段为 stamp_sec、frame_id、position=[x,y,z]、orientation_xyzw=[x,y,z,w]。
+连续调用时复用同一个 DirectionAdapter 实例，以检查序号。
+还可运行 direction_adapter.py --stdin，每行输入 {"message":消息,"pose":位姿}，每行输出转换结果。
+演示：python3 direction_adapter.py --demo；使用合成位姿，绝不驱动机器人。
+
+成熟方案及本项目状态：
+Noetic + Point-LIO 可评估 CMU Ground-based Autonomy / Autonomous Exploration Development Environment：
+  https://github.com/jizhang-cmu/ground_based_autonomy_basic
+  https://www.cmu-exploration.com/
+包括地形分析、局部避障和航点跟踪，仍须适配 Go2、传感器变换、速度接口与故障保护。
+ROS2 Nav2 适合平地目标点导航，使用 NavigateToPose：
+  https://docs.nav2.org/rolling/configuration_and_development/configuration_guide/core_servers/bt_plugins/actions/NavigateToPose/
+机载 PCT_Planner 已有源码，是三维全局规划候选；尚未接到真实地图一致坐标和路径跟踪，不能仅启动后就认为已自动导航。
+  https://github.com/byangw/PCT_planner
+无需为了手动前后走先实现雷达分析或训练强化学习；自动避障与地形判断由程序处理。
+原 dcfnav_go2 的源数据超时、异常值、未知区域问题仍未修复；新方向接口的测试通过不代表旧导航链路已通过。
+
+验证记录：
+interface_test_results.json：43 个纯静态用例，假客户端和假时间，阻止 SDK/DDS 导入。
+ros_interface_test_results.json：实际里程计的候选生成、无运动合同、到期失效、异常值和重放拒绝。
+gui_preview_test_results.json：实际点击预览按钮，动作到期和模拟停止正常；真实运动指令为 0。
+首次单次 ROS 测试请求因时间过期被拒，记录保留。等待连接稳定并发送新的采样时间后复测通过；未放宽有效期。
+实机后端只完成静态代码和依赖核对，尚未进行真实运动验收。
