@@ -106,6 +106,17 @@ rviz -d /home/unitree/go2_navigation_github/config/lidar_preview.rviz
 
 使用同一 `config/lidar_preview.rviz` 越肩跟随视图。此分支按原始 Livox 的逐点时间和 Point-LIO 内部雷达到 IMU 变换配准，显示用 4 厘米体素；原定位的 0.5 米降采样不变。它是仅显示的近似去畸变，未完成机身标定，不供自主导航使用。没有对应位姿、数据超时或跳变时不伪造配准。启动、回退、负载和日志说明见 [DENSE_DISPLAY.md](docs/DENSE_DISPLAY.md)。
 
+## 可选 130°前方处理
+
+原全周配置保留。新增前方左右各 65°、3 米范围内 4 厘米体素，周围 1.5 米保留 12 厘米体素回波。该配置只裁剪建图/显示分支，Point-LIO 仍接收全周数据。下次机载同步更新后，在原雷达和定位已运行时选择：
+
+```bash
+/home/unitree/go2_navigation_github/bin/go2-nav lidar-dense-preview --config /home/unitree/go2_navigation_github/config/lidar_sector_preview.json
+rviz -d /home/unitree/go2_navigation_github/config/lidar_sector_preview.rviz
+```
+
+未标定预览按 Point-LIO 参考方向，正式地图的 `config/perception_sector.json` 按标定后的机身方向。范围之外保持未知；近处粗点不代表碰撞安全已验收。本次仅本地实现，机载负载和实物覆盖待测。参数、回退、正式地图和本地演示见 [SECTOR_ROI.md](docs/SECTOR_ROI.md)。
+
 ## NoMachine 手动面板
 
 在 NoMachine 的机载终端启动：

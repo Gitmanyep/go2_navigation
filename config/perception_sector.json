@@ -1,0 +1,35 @@
+{
+  "fixed_frame": "camera_init",
+  "body_frame": "go2_mapping_base",
+  "odom_reference": "lidar",
+  "calibration_file": "calibration.template.json",
+  "period_s": 0.1,
+  "publish_period_s": 0.5,
+  "snapshot_lease_s": 0.3,
+  "max_source_age_s": 0.5,
+  "pair_max_skew_s": 0.05,
+  "max_cloud_points": 200000,
+  "pose_buffer_size": 400,
+  "max_pose_jump_m": 1.0,
+  "topics": {
+    "cloud": "/cloud_registered",
+    "odom": "/aft_mapped_to_init",
+    "direction": "/go2/navigation/direction",
+    "imu": null
+  },
+  "direction": {
+    "expected_frame": null,
+    "expected_hz": null,
+    "max_age_s": 0.5
+  },
+  "terrain_overrides": {},
+  "note": "Optional calibrated body-heading 130-degree sector plus 1.5m all-round coarse returns. No SDK/control; calibration gates and source-age limits unchanged. Cropped regions stay unknown.",
+  "spatial_roi": {
+    "frame": "body",
+    "front_angle_deg": 130.0,
+    "front_range_m": 3.0,
+    "near_radius_m": 1.5,
+    "fine_voxel_m": 0.04,
+    "near_voxel_m": 0.12
+  }
+}

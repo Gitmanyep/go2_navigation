@@ -55,6 +55,7 @@ def main():
             pubs[key]=rospy.Publisher(prefix+'/'+key,PointCloud2,queue_size=1)
         for key in ('window','warning','observed_cells','reference_pose'):
             pubs[key]=rospy.Publisher(prefix+'/'+key,Marker,queue_size=1)
+        if engine.roi.enabled:pubs['sector']=rospy.Publisher(prefix+'/sector',Marker,queue_size=1)
     elif not a.audit_only:
         for key,kind in [('map',OccupancyGrid),('elevation',PointCloud2),('obstacles',PointCloud2),('body_pose',PoseStamped)]:
             pubs[key]=rospy.Publisher(prefix+'/'+key,kind,queue_size=1)

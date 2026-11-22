@@ -107,6 +107,12 @@ class ReferencePreviewTests(unittest.TestCase):
             self.assertEqual(p.returncode,2);self.assertEqual(list(Path(folder).iterdir()),[])
 
     def test_actual_ros_adapter_topics_live_and_stale_clear(self):
+        self.check_actual_ros_adapter('lidar_preview.json')
+
+    def test_actual_sector_ros_adapter_adds_boundary_and_clears_it_on_timeout(self):
+        self.check_actual_ros_adapter('lidar_sector_preview.json', sector=True)
+
+    def check_actual_ros_adapter(self, settings_name, sector=False):
         from perception import ros_node
         from perception.reference_preview import preview_messages
         modules={};published={};start=time.monotonic()
@@ -125,7 +131,7 @@ class ReferencePreviewTests(unittest.TestCase):
         cloud=NS(header=header,width=len(self.points),height=1,points=self.points.tolist())
         def sub(topic,kind,callback,**kw):
             if topic=='/aft_mapped_to_init':callback(odom)
-            if topic=='/cloud_registered':callback(cloud)
+            if topic in ('/cloud_registered','/go2/lidar_dense/registered'):callback(cloud)
             return NS()
         module('rospy',Time=NS(now=lambda:NS(to_sec=lambda:100.+time.monotonic()-start),from_sec=lambda x:x),
                myargv=lambda:sys.argv,init_node=lambda name:None,Publisher=pub,Subscriber=sub,is_shutdown=lambda:False)
@@ -145,14 +151,19 @@ class ReferencePreviewTests(unittest.TestCase):
         module('visualization_msgs');module('visualization_msgs.msg',Marker=Marker)
         with tempfile.TemporaryDirectory() as folder:
             output=Path(folder)/'run'
-            argv=['ros_node.py','--settings',str(ROOT/'config/lidar_preview.json'),'--reference-preview','--output',str(output),'--seconds','.65']
+            argv=['ros_node.py','--settings',str(ROOT/'config'/settings_name),'--reference-preview','--output',str(output),'--seconds','.65']
             with patch.dict(sys.modules,modules),patch.object(sys,'argv',argv):
                 self.assertEqual(ros_node.main(),0)
                 expired=expired_snapshot(self.live(),100.31,.31,self.settings)
                 msgs=preview_messages(expired)
                 self.assertEqual(msgs['points'].points,[]);self.assertEqual(msgs['highest_returns'].points,[])
                 self.assertEqual(msgs['reference_pose'].action,Marker.DELETE)
-            self.assertEqual(set(published),{'/go2/lidar_preview/'+s for s in ('points','lowest_returns','highest_returns','window','warning','observed_cells','reference_pose','status')})
+            expected={'/go2/lidar_preview/'+s for s in ('points','lowest_returns','highest_returns','window','warning','observed_cells','reference_pose','status')}
+            if sector:
+                expected.add('/go2/lidar_preview/sector')
+                self.assertGreater(len(published['/go2/lidar_preview/sector'][0].points),100)
+                self.assertEqual(published['/go2/lidar_preview/sector'][-1].action,Marker.DELETE)
+            self.assertEqual(set(published),expected)
             self.assertGreater(len(published['/go2/lidar_preview/points'][0].points),0)
             self.assertEqual(published['/go2/lidar_preview/points'][-1].points,[])
             self.assertEqual(published['/go2/lidar_preview/points'][-1].header.stamp,100.)

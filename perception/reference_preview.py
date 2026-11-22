@@ -11,7 +11,7 @@ from perception.pipeline import MappingEngine, interpolate_pose
 
 class ReferencePreviewEngine(MappingEngine):
     def __init__(self, settings, calibration, cfg):
-        super().__init__(settings, calibration, cfg)
+        super().__init__(settings, calibration, cfg, roi_frame='pointlio_reference')
         self.preview = settings.get('reference_preview', {})
         self.resolution = float(self.preview.get('resolution_m', .12))
         self.window_m = float(self.preview.get('window_m', 6.))
@@ -65,6 +65,7 @@ class ReferencePreviewEngine(MappingEngine):
             # Source points are already in the world frame; never apply a body extrinsic.
             half = self.window_m/2+self.resolution
             points = points[np.all(np.abs(points[:, :2]-pose.position[:2]) <= half, axis=1)]
+            points, self.roi_metrics = self.roi.select(points, pose, downsample=False)
             if len(points) == 0:
                 raise ValueError('no_returns_in_preview_window')
             if len(points) > self.point_limit:
@@ -108,6 +109,9 @@ class ReferencePreviewEngine(MappingEngine):
             cells = np.floor((points[:, :2]-origin)/self.resolution).astype(int)
             inside = np.all((cells >= 0) & (cells < self.n), axis=1)
             points, cells = points[inside], cells[inside]
+            # Reclip accumulated returns against CURRENT heading, not scan-time heading.
+            points, self.roi_metrics = self.roi.select(points, pose)
+            cells = np.floor((points[:, :2]-origin)/self.resolution).astype(int)
             index = cells[:, 1]*self.n+cells[:, 0]
             np.minimum.at(low, index, points[:, 2])
             np.maximum.at(high, index, points[:, 2])
@@ -125,13 +129,14 @@ class ReferencePreviewEngine(MappingEngine):
                      retained_points=len(points), observed_cells=int(observed.sum()),
                      unknown_cells=self.n*self.n-int(observed.sum()), retention_s=self.retention,
                      motion_commands_sent=0, tf_chain_verified=False)
+        audit['spatial_roi'] = dict(self.roi_metrics)
         # Compatibility keys allow the existing independent expiration watchdog to clear data.
         return dict(valid=valid, reason=self.reset_required or self.last_error or ('uncalibrated_reference_preview' if valid else 'inputs_expired'),
                     frame=self.settings['fixed_frame'], source_stamp=self.cloud_stamp, built_wall=wall, built_mono=mono,
                     valid_until_mono=min(self.cloud_deadline, self.pose_deadline), resolution=self.resolution, origin=origin,
                     occupancy=np.full((self.n, self.n), -1, dtype=np.int8),
                     elevation_points=minimum, obstacle_points=points, maximum_points=maximum,
-                    reference_pose=reference, body_pose=None, support_valid=False, audit=audit)
+                    reference_pose=reference, body_pose=None, support_valid=False, audit=audit, spatial_roi=dict(self.roi.config))
 
 
 def preview_messages(snapshot):
@@ -191,4 +196,26 @@ def preview_messages(snapshot):
         pose.pose.position.x, pose.pose.position.y, pose.pose.position.z = reference['position']
         pose.pose.orientation.x, pose.pose.orientation.y, pose.pose.orientation.z, pose.pose.orientation.w = reference['quaternion']
     result['reference_pose'] = pose
+    roi = snapshot.get('spatial_roi')
+    if roi:
+        # Horizontal observation limits only; they do not outline free space.
+        sector = Marker(); sector.header = header; sector.ns = 'observation_limits_not_free'
+        sector.id = 0; sector.type = Marker.LINE_STRIP
+        sector.action = Marker.ADD if reference else Marker.DELETE
+        sector.pose.orientation.w = 1.; sector.scale.x = .025
+        sector.color.r = .1; sector.color.g = 1.; sector.color.b = .8; sector.color.a = .8
+        if reference:
+            from scipy.spatial.transform import Rotation
+            forward = Rotation.from_quat(reference['quaternion']).as_matrix()[:2, 0]
+            yaw = math.atan2(forward[1], forward[0]); centre = np.asarray(reference['position'])
+            half = math.radians(roi['front_angle_deg']/2)
+            angles = np.linspace(yaw-half, yaw+half, 65)
+            front = centre+np.column_stack([np.cos(angles)*roi['front_range_m'],
+                                           np.sin(angles)*roi['front_range_m'], np.zeros(len(angles))])
+            angles = np.linspace(0., 2*math.pi, 97)
+            near = centre+np.column_stack([np.cos(angles)*roi['near_radius_m'],
+                                          np.sin(angles)*roi['near_radius_m'], np.zeros(len(angles))])
+            vertices = np.vstack([centre, front, centre, near, centre])
+            sector.points = [Point(x=p[0], y=p[1], z=p[2]) for p in vertices]
+        result['sector'] = sector
     return result

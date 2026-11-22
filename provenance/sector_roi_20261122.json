@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-22T20:15:23.044036+08:00",
+  "base_commit": "76d782a57cdfa73c850286dae22a823cd3e563f2",
+  "scope": "local_only",
+  "robot_connected": false,
+  "robot_commands_sent": 0,
+  "onboard_updated": false,
+  "git_remote_updated": false,
+  "software_checks": {
+    "simulation": 78,
+    "fake_control": 43,
+    "perception_and_adapters": 133,
+    "total": 254,
+    "passed": true
+  },
+  "full_test_log": "logs/20261122_201419_test_b61b1804",
+  "synthetic_mapping_log": "logs/20261122_201405_perception-demo_58226ec3",
+  "original_full_circle_presets_and_control_and_simulation_unchanged": true,
+  "hardware_acceptance": "pending",
+  "cpu_reduction_measured": false,
+  "settings": {
+    "frame": "pointlio_reference",
+    "front_angle_deg": 130.0,
+    "front_range_m": 3.0,
+    "near_radius_m": 1.5,
+    "fine_voxel_m": 0.04,
+    "near_voxel_m": 0.12
+  },
+  "synthetic_input_points": 20000,
+  "result_artifact": "artifacts/sector_roi_20261122/report.json"
+}

@@ -12,6 +12,7 @@ SIM=Path(__file__).resolve().parents[1]/'simulation'
 if str(SIM) not in sys.path:sys.path.insert(0,str(SIM))
 from core import Pose,TerrainMap,config as terrain_config
 from geometry import body_pose_from_lidar
+from perception.spatial_roi import SpatialROI
 
 
 def load_settings(path,calibration_path=None):
@@ -40,6 +41,7 @@ def load_settings(path,calibration_path=None):
     for key in ('resolution_m','map_size_m','fusion_window_s','map_lease_s','obstacle_hold_s','body_reference_height_m'):
         if not math.isfinite(cfg[key]) or cfg[key]<=0:raise ValueError('invalid terrain parameter: '+key)
     if not 8<=round(cfg['map_size_m']/cfg['resolution_m'])<=256:raise ValueError('map size outside supported range')
+    SpatialROI(settings.get('spatial_roi'))
     return settings,calibration,cfg,calibration_path
 
 
@@ -145,7 +147,7 @@ def expired_snapshot(snapshot,wall,mono,settings):
 
 
 class MappingEngine:
-    def __init__(self,settings,calibration,cfg,audit_only=False):
+    def __init__(self,settings,calibration,cfg,audit_only=False,roi_frame='body'):
         self.settings,self.calibration,self.cfg=settings,calibration,cfg
         self.audit_only=audit_only;self.audit=Audit(settings['max_source_age_s'])
         self.calibration_issues=calibration_issues(calibration,cfg)
@@ -154,6 +156,8 @@ class MappingEngine:
         self.last_cloud_receipt=None;self.last_wall=None;self.reset_required=None
         self.last_error='waiting_for_inputs';self.pairing=None;self.accepted_clouds=0
         self.direction_sequence={};self.last_direction=None;self.child_frames=set()
+        self.roi=SpatialROI(settings.get('spatial_roi'),expected_frame=roi_frame)
+        self.roi_metrics=dict(enabled=self.roi.enabled)
     def clock_check(self,wall):
         if self.last_wall is not None and wall<self.last_wall-.001:
             self.reset_required='ROS_clock_rollback_restart_required';self.map=None;self.poses.clear()
@@ -223,6 +227,8 @@ class MappingEngine:
                     lo,hi=validate_box(box);keep&=~np.all((body>lo)&(body<hi),axis=1)
                 points=points[keep]
             if len(points)<3:raise ValueError('self_filter_removed_cloud')
+            points,self.roi_metrics=self.roi.select(points,pose)
+            if len(points)<3:raise ValueError('insufficient_returns_in_spatial_roi')
             if self.map is None:self.map=TerrainMap(self.cfg,pose.position)
             evidence=mono-max(0.,wall-stamp)
             if evidence<=getattr(self,'last_evidence',-math.inf):raise ValueError('nonincreasing_evidence_time')
@@ -258,12 +264,20 @@ class MappingEngine:
             pose=self.poses[-1]
             if self.settings['odom_reference']=='lidar':pose=body_pose_from_lidar(pose,self.cfg)
             body=dict(stamp=pose.stamp,position=pose.position.tolist(),quaternion=pose.quaternion.tolist())
+            if self.roi.enabled:
+                yy,xx=np.indices(occupancy.shape)
+                centres=np.column_stack([origin[0]+(xx.ravel()+.5)*self.cfg['resolution_m'],
+                                         origin[1]+(yy.ravel()+.5)*self.cfg['resolution_m'],np.zeros(xx.size)])
+                occupancy[~self.roi.coverage(centres,pose).reshape(occupancy.shape)]=-1
+                elevation=elevation[self.roi.coverage(elevation,pose)]
+                obstacles=obstacles[self.roi.coverage(obstacles,pose)]
         audit=self.audit.report(mono)
         audit.update(calibration_issues=list(self.calibration_issues),odometry_child_frames=sorted(self.child_frames),
                      direction_contract=self.settings['direction'],direction_source=self.last_direction,
                      tf_chain_verified=False,accepted_clouds=self.accepted_clouds,pairing_method=self.pairing,
                      obstacle_evidence_hold_s=self.cfg['obstacle_hold_s'],ground_fusion_window_s=self.cfg['fusion_window_s'],
                      motion_commands_sent=0)
+        audit['spatial_roi']=dict(self.roi_metrics)
         return dict(valid=valid,reason=reason,frame=self.settings['fixed_frame'],source_stamp=self.cloud_stamp,
                     built_wall=wall,built_mono=mono,valid_until_mono=min(self.cloud_deadline,self.pose_deadline),
                     resolution=self.cfg['resolution_m'],origin=origin,occupancy=occupancy,elevation_points=elevation,

@@ -1,0 +1,74 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Fixed Frame: camera_init
+    Background Color: 25; 25; 25
+    Frame Rate: 15
+  Displays:
+    - Class: rviz/PointCloud2
+      Name: Rolling returns - UNCALIBRATED
+      Enabled: true
+      Topic: /go2/lidar_preview/points
+      Queue Size: 1
+      Style: Points
+      Size (Pixels): 4
+      Decay Time: 0
+      Color Transformer: AxisColor
+      Axis: Z
+    - Class: rviz/PointCloud2
+      Name: Lowest return per cell - NOT GROUND
+      Enabled: false
+      Topic: /go2/lidar_preview/lowest_returns
+      Queue Size: 1
+      Style: Points
+      Size (Pixels): 5
+      Decay Time: 0
+      Color Transformer: AxisColor
+      Axis: Z
+    - Class: rviz/PointCloud2
+      Name: Highest return per cell
+      Enabled: false
+      Topic: /go2/lidar_preview/highest_returns
+      Queue Size: 1
+      Style: Points
+      Size (Pixels): 5
+      Decay Time: 0
+      Color Transformer: AxisColor
+      Axis: Z
+    - Class: rviz/Marker
+      Name: Observed cells - NO FREE SPACE CLAIM
+      Enabled: false
+      Marker Topic: /go2/lidar_preview/observed_cells
+    - Class: rviz/Marker
+      Name: 6m rolling window
+      Enabled: true
+      Marker Topic: /go2/lidar_preview/window
+    - Class: rviz/Marker
+      Name: Point-LIO reference - NOT Go2 BODY
+      Enabled: true
+      Marker Topic: /go2/lidar_preview/reference_pose
+    - Class: rviz/Marker
+      Name: UNCALIBRATED status
+      Enabled: true
+      Marker Topic: /go2/lidar_preview/warning
+    - Class: rviz/Marker
+      Name: 130deg sector and 1.5m near ring - NOT FREE SPACE
+      Enabled: true
+      Marker Topic: /go2/lidar_preview/sector
+  Views:
+    Current:
+      Class: rviz/ThirdPersonFollower
+      Target Frame: body
+      Distance: 3.0
+      Pitch: 0.3
+      Yaw: 3.141592653589793
+      Focal Point:
+        X: 1.0
+        Y: 0.0
+        Z: 0.0
+Window Geometry:
+  Width: 1280
+  Height: 800

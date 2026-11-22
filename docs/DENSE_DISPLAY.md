@@ -54,3 +54,7 @@ p_world(t) = R_world_IMU(t) × (R_IMU_lidar × p_lidar + t_IMU_lidar) + t_world_
 - `perception/preview/`：原预览的时效、已观测格与未知格记录。
 
 先静止比对原始点数、稠密输出、最终窗口点数和源年龄，观察墙面是否与原注册点云一致；再在遥控器恢复正常后由操作者低速移动。转换器不启动或试探运动。不通过增加超时阈值掩盖原定位积压。
+
+## 可选前方 130°模式
+
+全周默认配置保留。使用 `config/lidar_sector_preview.json` 可对显示分支启用前方左右各 65°精细点和 1.5 米近距离全周粗点；正式地图另有机身参考配置。启动、边界和限制见 [SECTOR_ROI.md](SECTOR_ROI.md)。

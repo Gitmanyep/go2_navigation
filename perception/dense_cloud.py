@@ -10,6 +10,7 @@ from types import SimpleNamespace
 import numpy as np
 from scipy.spatial.transform import Rotation
 from perception.pipeline import Audit, Pose
+from perception.spatial_roi import SpatialROI
 
 
 CUSTOM_MSG_MD5='e4d6829bdfe657cb6c21a746c86b21a6'
@@ -86,6 +87,7 @@ class DenseProjector:
         self.audit=Audit(settings['max_source_age_s']);self.reset_reason=None;self.last_wall=None
         self.last_reason='waiting_for_inputs';self.last_source_stamp=0.;self.last_metrics={}
         self.accepted=0;self.processing_ms=0.
+        self.roi=SpatialROI(settings.get('spatial_roi'),expected_frame='pointlio_reference')
         for key in ('max_pose_gap_s','max_scan_span_s','voxel_m'):
             if not math.isfinite(self.d[key]) or self.d[key]<=0:raise ValueError('invalid dense setting: '+key)
         if not .005<=self.d['voxel_m']<=.25:raise ValueError('visual voxel outside supported range')
@@ -138,13 +140,17 @@ class DenseProjector:
         points=points[np.all(np.abs(points[:,:2]-self.poses[-1].position[:2])<=half,axis=1)]
         if len(points)<3:raise ValueError('no_returns_in_dense_window')
         # Only the visualization branch uses this finer voxel; estimator settings are untouched.
-        voxel=np.floor(points/self.d['voxel_m']).astype(np.int64)
-        _,indices=np.unique(voxel,axis=0,return_index=True);indices.sort()
-        result=points[indices]
+        if self.roi.enabled:
+            result,roi_metrics=self.roi.select(points,self.poses[-1])
+        else:
+            voxel=np.floor(points/self.d['voxel_m']).astype(np.int64)
+            _,indices=np.unique(voxel,axis=0,return_index=True);indices.sort()
+            result=points[indices];roi_metrics=dict(enabled=False)
         if len(result)<3:raise ValueError('insufficient_dense_voxels')
         self.accepted+=1;self.last_reason='dense_visualization_only';self.last_source_stamp=frame['end']
         self.last_metrics=dict(input_points=frame['input_points'],filtered_points=frame['filtered_points'],output_points=len(result),
                                scan_begin=frame['stamp'],scan_end=frame['end'],scan_span_s=frame['end']-frame['stamp'],voxel_m=self.d['voxel_m'])
+        self.last_metrics['spatial_roi']=roi_metrics
         return result
     def status(self,mono):
         return dict(mode='dense_visualization_only',reason=self.reset_reason or self.last_reason,accepted_scans=self.accepted,
