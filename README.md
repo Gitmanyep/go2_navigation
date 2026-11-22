@@ -22,6 +22,7 @@
 
 笔记本仓库：`/media/leon/新加卷/dog_project/go2_navigation`。
 机载仓库：`/home/unitree/go2_navigation`。
+共享仓库：[Gitmanyep/go2_navigation](https://github.com/Gitmanyep/go2_navigation)。
 
 ## 使用哪个版本
 
@@ -83,7 +84,7 @@ nohup /home/unitree/go2_navigation/bin/go2-nav preview > /home/unitree/go2_navig
 
 ## 部署与 Git 留档
 
-当前仅本地和机载部署，没有上传 GitHub/Gitee。机载 `origin` 指向同版本离线 bundle；它不是会自动同步的云仓库。
+笔记本 `origin` 连接上述 GitHub 仓库，提交后使用 `git push` 共享代码和仿真。机载 `origin` 目前仍指向首次部署用的离线 bundle；向 GitHub 推送不会自动更新机载文件。两边修改都需要在各自仓库提交，再通过 Git 同步和合并。
 
 首轮部署工具只接受干净的 `main` 分支，目标目录必须不存在；遇到已有目录会停止，避免覆盖。离线 wheel 安装只写新仓库的 `.venv`。
 

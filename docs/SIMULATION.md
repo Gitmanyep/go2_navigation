@@ -4,6 +4,13 @@
 
 ## 队友克隆后启动
 
+先克隆共享仓库：
+
+```bash
+git clone https://github.com/Gitmanyep/go2_navigation.git
+cd go2_navigation
+```
+
 仿真需要 Python、NumPy、SciPy、Matplotlib，GUI 还需要 Tk，不需要机器狗、SDK、ROS 或强化学习模型。以下安装示例适用于 Ubuntu 的 Python 3.10；Python3.8 的固定版本见 `config/requirements-py38.lock`。
 
 先在仓库根目录创建独立环境：
