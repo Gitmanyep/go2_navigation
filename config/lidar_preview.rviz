@@ -56,10 +56,15 @@ Visualization Manager:
       Marker Topic: /go2/lidar_preview/warning
   Views:
     Current:
-      Class: rviz/Orbit
-      Distance: 9
-      Pitch: 0.9
-      Yaw: 0.8
+      Class: rviz/ThirdPersonFollower
+      Target Frame: body
+      Distance: 3.0
+      Pitch: 0.3
+      Yaw: 3.141592653589793
+      Focal Point:
+        X: 1.0
+        Y: 0.0
+        Z: 0.0
 Window Geometry:
   Width: 1280
   Height: 800

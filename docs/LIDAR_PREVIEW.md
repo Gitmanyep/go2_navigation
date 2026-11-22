@@ -38,7 +38,9 @@ rviz -d /home/unitree/go2_navigation_github/config/lidar_preview.rviz
 - `Lowest return per cell - NOT GROUND` / `Highest return per cell`：可单独启用观察原始回波高度范围。
 - `Observed cells - NO FREE SPACE CLAIM`：可启用查看有回波的格子；其余无观测区域为空缺，不代表可走。
 
-Fixed Frame 使用输入的真实世界系，当前默认 `camera_init`。视角默认固定在该世界系，可中键平移；若已有 Point-LIO TF 链，可在 Views → Target Frame 选其真实参考帧（当前输出 child_frame_id 为 `body`），让视角跟随。这里的 `body` 名称不构成 Go2 机身标定证明。不要通过把 Fixed Frame 改成运动中的参考帧来判断固定物体是否漂移。
+Fixed Frame 保持输入的真实世界系 `camera_init`。默认相机为 `rviz/ThirdPersonFollower`，Target Frame 使用当前 Point-LIO TF 的 `body`：从参考点后上方看向前方，随位置和航向跟随，保持画面竖直。这个 `body` 是里程计参考帧，其名称不构成 Go2 机身标定证明；没有假定雷达到机身的旋转，若实物雷达朝向与狗头不同，后续需测量后校正视角。
+
+Views 面板可调 Distance（远近）、Pitch（俯视角）；Yaw=3.14159 表示从参考系 -X 侧向 +X 看。默认看向前方约 1 米，相机距离焦点约 3 米。滚轮缩放，左键拖动会改变相对于参考系的镜头角度。不要把 Fixed Frame 改成运动帧来让地图旋转。若里程计 child_frame_id 变成其它名称，先核对对应 TF，再修改 Target Frame。
 
 ## 输出和日志
 
