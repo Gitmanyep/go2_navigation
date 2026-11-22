@@ -1,0 +1,25 @@
+{
+  "recorded_at": "2026-11-22T19:41:17.522824+08:00",
+  "base_commit": "d35667c9d37ca1dd70f02a97264d3c89bb4c060d",
+  "software_checks": 228,
+  "new_checks": 18,
+  "all_passed": true,
+  "test_log": "logs/20261122_194025_test_59a855c5",
+  "python38_parse": true,
+  "pointlio_source_unchanged": true,
+  "pointlio_parameters_changed": false,
+  "original_lio_source_sha256": "89d0207b6e11c6eeda8a3d05a4acf6253255d98418b8b9568e6488d1a08393a7",
+  "mode": "lidar-dense-preview",
+  "approximate_per_point_odometry_deskew": true,
+  "navigation_usable": false,
+  "motion_commands_sent": 0,
+  "hardware_acceptance": "pending; live lidar unreachable during implementation",
+  "source_sha256": {
+    "perception/dense_cloud.py": "fb17b99899e30b729fd392bb362bb283a15a350b4a589b655f8004da4151cb82",
+    "perception/dense_node.py": "40d81c07e7f903253354c73d26e55d8c41eba0d2832f9b685c562672373432bd",
+    "perception/dense_preview.py": "eddc4c79020477a53428503ba73d91ee497cd01873a4fb24ed8f72b2ddf2a002",
+    "tests/test_dense_cloud.py": "9bc9a667dfc5c8fe7b5f4bf400c56f3a2452cf9af55c057305aa6310c4819f72",
+    "scripts/run.py": "356a67ec3bca6a881586da2630c728a67d89bd0c394a143f664c09791b4e8dad",
+    "config/lidar_dense_preview.json": "897065c6715230598854b924fc63c9fae244f86501cb0456e3a8f2c4a4dac510"
+  }
+}

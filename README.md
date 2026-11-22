@@ -96,6 +96,16 @@ rviz -d /home/unitree/go2_navigation_github/config/lidar_preview.rviz
 
 它显示 6×6 米滚动窗口、最近 3 秒注册回波和每格最低／最高回波，**不使用机身外参、不做地面或可通行性分类、不调用 TerrainMap 或运动接口**。全部输出位于 `/go2/lidar_preview/`，明确标为未标定，断流清空显示；原厂遥控器仍由操作者使用。它只用于初步观察滚动及数据稳定性，不能作为正式 TerrainMap 或机身碰撞验收。遥控异常先做静态检查。详细启动、图例、日志和验收方法见 [LIDAR_PREVIEW.md](docs/LIDAR_PREVIEW.md)。
 
+## 稠密点云显示
+
+需要更密的显示时，先停止已有 `lidar-preview`，在原雷达与 Point-LIO 正常运行的机载终端启动：
+
+```bash
+/home/unitree/go2_navigation_github/bin/go2-nav lidar-dense-preview
+```
+
+使用同一 `config/lidar_preview.rviz` 越肩跟随视图。此分支按原始 Livox 的逐点时间和 Point-LIO 内部雷达到 IMU 变换配准，显示用 4 厘米体素；原定位的 0.5 米降采样不变。它是仅显示的近似去畸变，未完成机身标定，不供自主导航使用。没有对应位姿、数据超时或跳变时不伪造配准。启动、回退、负载和日志说明见 [DENSE_DISPLAY.md](docs/DENSE_DISPLAY.md)。
+
 ## NoMachine 手动面板
 
 在 NoMachine 的机载终端启动：

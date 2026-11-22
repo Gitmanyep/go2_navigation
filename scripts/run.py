@@ -45,20 +45,20 @@ def doctor():
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('mode', nargs='?', default='doctor', choices=(
-        'doctor', 'test', 'sim', 'gui', 'preview', 'manual-preview', 'manual-live', 'monitor', 'monitor-demo', 'data-audit', 'mapping', 'perception-demo', 'lidar-preview'))
+        'doctor', 'test', 'sim', 'gui', 'preview', 'manual-preview', 'manual-live', 'monitor', 'monitor-demo', 'data-audit', 'mapping', 'perception-demo', 'lidar-preview', 'lidar-dense-preview'))
     p.add_argument('--config', type=Path)
     p.add_argument('--log-root', type=Path, default=ROOT/'logs')
     a, extra = p.parse_known_args()
     if extra and extra[0] == '--':
         extra = extra[1:]
-    perception_mode=a.mode in ('data-audit','mapping','perception-demo','lidar-preview')
-    cfg_path = (a.config or ROOT/('config/lidar_preview.json' if a.mode=='lidar-preview' else 'config/perception.json' if perception_mode else 'simulation/config.json')).resolve()
+    perception_mode=a.mode in ('data-audit','mapping','perception-demo','lidar-preview','lidar-dense-preview')
+    cfg_path = (a.config or ROOT/('config/lidar_dense_preview.json' if a.mode=='lidar-dense-preview' else 'config/lidar_preview.json' if a.mode=='lidar-preview' else 'config/perception.json' if perception_mode else 'simulation/config.json')).resolve()
     if not cfg_path.is_file():
         p.error('config file missing: '+str(cfg_path))
     if a.mode in ('preview', 'sim', 'gui') and any(
             x in ('--mode', '--config', '--output') or x.startswith(('--mode=', '--config=', '--output=')) for x in extra):
         p.error('use the top-level mode/--config; output is managed by the launcher')
-    if a.mode in ('monitor','monitor-demo','data-audit','mapping','perception-demo','lidar-preview') and any(x in ('--output','--settings') or x.startswith(('--output=','--settings=')) for x in extra):
+    if a.mode in ('monitor','monitor-demo','data-audit','mapping','perception-demo','lidar-preview','lidar-dense-preview') and any(x in ('--output','--settings') or x.startswith(('--output=','--settings=')) for x in extra):
         p.error('output/settings are managed by the launcher')
     if any(x in ('--reference-preview','--audit-only') or x.startswith(('--reference-preview=','--audit-only=')) for x in extra):
         p.error('select the top-level data-audit or lidar-preview mode')
@@ -108,7 +108,7 @@ def main():
                      *(['--gui'] if a.mode == 'gui' else ['--output', str(run/'simulation')]), *extra]]
     elif a.mode=='perception-demo':
         commands=[[py,str(ROOT/'perception/demo.py'),'--settings',str(cfg_path),'--output',str(run/'perception'),*extra]]
-    elif a.mode in ('preview','data-audit','mapping','lidar-preview'):
+    elif a.mode in ('preview','data-audit','mapping','lidar-preview','lidar-dense-preview'):
         setup = Path('/opt/ros/noetic/setup.bash')
         if not setup.exists():
             meta['error'] = 'ROS Noetic is required for this read-only onboard adapter'
@@ -116,12 +116,19 @@ def main():
             save()
             print(meta['error'], file=sys.stderr)
             return 2
-        if a.mode=='preview':
+        if a.mode=='lidar-dense-preview':
+            overlay=Path('/home/unitree/sound_lio_ws/devel/setup.bash')
+            if not overlay.exists():
+                meta.update(error='Livox ROS message overlay missing: '+str(overlay),exit_code=2);save();return 2
+            target=[py,str(ROOT/'perception/dense_preview.py'),'--settings',str(cfg_path),'--output',str(run/'perception'),*extra]
+        elif a.mode=='preview':
             target=[py,str(nav/'ros_node.py'),'--mode','preview','--config',str(cfg_path),*extra]
         else:
             target=[py,str(ROOT/'perception/ros_node.py'),'--settings',str(cfg_path),'--output',str(run/'perception'),
                     *(['--audit-only'] if a.mode=='data-audit' else ['--reference-preview'] if a.mode=='lidar-preview' else []),*extra]
-        commands=[['/bin/bash','-c','source /opt/ros/noetic/setup.bash; exec "$@"','go2-nav',*target]]
+        setup_command='source /opt/ros/noetic/setup.bash; '
+        if a.mode=='lidar-dense-preview':setup_command+='source /home/unitree/sound_lio_ws/devel/setup.bash; '
+        commands=[['/bin/bash','-c',setup_command+'exec "$@"','go2-nav',*target]]
     else:
         if a.mode in ('manual-live','monitor'):
             py = '/home/unitree/miniforge3/envs/rl/bin/python'
