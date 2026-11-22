@@ -11,6 +11,13 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class DeploymentTests(unittest.TestCase):
+    def test_offline_dependency_lock_is_shipped(self):
+        lock = ROOT/'config/requirements-py38.lock'
+        self.assertTrue(lock.is_file())
+        self.assertIn('numpy==1.24.4', lock.read_text())
+        ignored = subprocess.run(['git', '-C', str(ROOT), 'check-ignore', str(lock)], capture_output=True)
+        self.assertNotEqual(ignored.returncode, 0)
+
     def test_doctor_logs_exact_source_and_config(self):
         with tempfile.TemporaryDirectory() as folder:
             p = subprocess.run([str(ROOT/'bin/go2-nav'), 'doctor', '--log-root', folder],

@@ -17,5 +17,6 @@ local/
 *.pstats
 *.bundle
 *.lock
+!config/requirements-py38.lock
 control/interface_test_results.json
 .DS_Store

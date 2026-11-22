@@ -45,7 +45,7 @@ def main():
     output = ROOT/'artifacts'/commit
     output.mkdir(parents=True, exist_ok=False)
     bundle = output/'source.bundle'
-    run(['git', '-C', str(ROOT), 'bundle', 'create', str(bundle), 'main'])
+    run(['git', '-C', str(ROOT), 'bundle', 'create', str(bundle), 'main', '--tags'])
     run(['git', '-C', str(ROOT), 'bundle', 'verify', str(bundle)])
     run([*ssh, 'mkdir -p '+q(release+'/wheels')])
     run(['scp', *options, str(bundle), a.host+':'+release+'/source.bundle'])
