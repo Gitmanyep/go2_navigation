@@ -27,22 +27,35 @@ def main():
     from perception.ros_messages import messages
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--settings',type=Path,required=True);p.add_argument('--calibration',type=Path)
-    p.add_argument('--output',type=Path,required=True);p.add_argument('--audit-only',action='store_true')
+    p.add_argument('--output',type=Path,required=True)
+    group=p.add_mutually_exclusive_group()
+    group.add_argument('--audit-only',action='store_true');group.add_argument('--reference-preview',action='store_true')
     p.add_argument('--seconds',type=float)
     a=p.parse_args(rospy.myargv()[1:])
     if a.seconds is not None and (not math.isfinite(a.seconds) or a.seconds<=0):p.error('seconds must be positive and finite')
+    if a.reference_preview and a.calibration is not None:p.error('reference preview does not accept a body calibration override')
     settings,calibration,cfg,cal_path=load_settings(a.settings,a.calibration)
-    engine=MappingEngine(settings,calibration,cfg,a.audit_only);meter=ReceiveMeter()
+    if a.reference_preview:
+        from perception.reference_preview import ReferencePreviewEngine,preview_messages
+        from visualization_msgs.msg import Marker
+        engine=ReferencePreviewEngine(settings,calibration,cfg)
+    else:engine=MappingEngine(settings,calibration,cfg,a.audit_only)
+    meter=ReceiveMeter()
     a.output.mkdir(parents=True,exist_ok=False)
     (a.output/'settings.json').write_text(json.dumps(settings,indent=2)+'\n')
     (a.output/'calibration.json').write_text(json.dumps(calibration,indent=2)+'\n')
-    (a.output/'metadata.json').write_text(json.dumps(dict(mode='data_audit' if a.audit_only else 'local_mapping_preview',
+    (a.output/'metadata.json').write_text(json.dumps(dict(mode='uncalibrated_reference_preview' if a.reference_preview else 'data_audit' if a.audit_only else 'local_mapping_preview',
         source='external_pointlio',settings_path=str(a.settings.resolve()),calibration_path=str(cal_path),
         calibration_sha256=hashlib.sha256(cal_path.read_bytes()).hexdigest(),
         calibration_issues=engine.calibration_issues,motion_commands_sent=0,hardware_acceptance='pending'),indent=2)+'\n')
-    rospy.init_node('go2_perception_audit' if a.audit_only else 'go2_perception_mapping')
-    prefix='/go2/perception';pubs={}
-    if not a.audit_only:
+    rospy.init_node('go2_lidar_reference_preview' if a.reference_preview else 'go2_perception_audit' if a.audit_only else 'go2_perception_mapping')
+    prefix='/go2/lidar_preview' if a.reference_preview else '/go2/perception';pubs={}
+    if a.reference_preview:
+        for key in ('points','lowest_returns','highest_returns'):
+            pubs[key]=rospy.Publisher(prefix+'/'+key,PointCloud2,queue_size=1)
+        for key in ('window','warning','observed_cells','reference_pose'):
+            pubs[key]=rospy.Publisher(prefix+'/'+key,Marker,queue_size=1)
+    elif not a.audit_only:
         for key,kind in [('map',OccupancyGrid),('elevation',PointCloud2),('obstacles',PointCloud2),('body_pose',PoseStamped)]:
             pubs[key]=rospy.Publisher(prefix+'/'+key,kind,queue_size=1)
     status_pub=rospy.Publisher(prefix+('/audit/status' if a.audit_only else '/status'),String,queue_size=1)
@@ -77,9 +90,9 @@ def main():
                                    translation=values[:3],quaternion=values[3:],received_mono=time.monotonic())
     subscribers=[rospy.Subscriber(settings['topics']['odom'],Odometry,lambda m:submit('odom',m),queue_size=100),
                  rospy.Subscriber(settings['topics']['cloud'],PointCloud2,lambda m:submit('cloud',m),queue_size=1,buff_size=2**24),
-                 rospy.Subscriber(settings['topics']['direction'],String,lambda m:submit('direction',m),queue_size=1),
                  rospy.Subscriber('/tf',TFMessage,tf_callback,queue_size=10),
                  rospy.Subscriber('/tf_static',TFMessage,lambda m:tf_callback(m,True),queue_size=10)]
+    if not a.reference_preview:subscribers.append(rospy.Subscriber(settings['topics']['direction'],String,lambda m:submit('direction',m),queue_size=1))
     if settings['topics'].get('imu'):subscribers.append(rospy.Subscriber(settings['topics']['imu'],Imu,lambda m:submit('imu',m),queue_size=10))
     finished=threading.Event();shared=dict(snapshot=None,worker_error=None)
     def process_one(kind,item):
@@ -134,14 +147,18 @@ def main():
                 if error:
                     snap=dict(snap,valid=False,reason='worker_error:'+error,occupancy=np.full_like(snap['occupancy'],-1),
                               elevation_points=np.empty((0,3)),obstacle_points=np.empty((0,3)))
-                state=dict(mode='audit_only' if a.audit_only else 'mapping_preview',map_data_valid=snap['valid'],reason=snap['reason'],
+                state=dict(mode='uncalibrated_reference_preview' if a.reference_preview else 'audit_only' if a.audit_only else 'mapping_preview',map_data_valid=snap['valid'],reason=snap['reason'],
                     fixed_frame=snap['frame'],source_stamp=snap['source_stamp'],published_ros_time=wall,
                     map_source_age_s=wall-snap['source_stamp'] if snap['source_stamp'] else None,
                     support_valid=snap['support_valid'],queue_drops=drops,callback_rates=meter.report(),tf_edges=transforms,
                     imu_topic_configured=settings['topics'].get('imu'),**snap['audit'])
+                if a.reference_preview:
+                    state.update(displayed_points=len(snap['obstacle_points']) if snap['valid'] else 0,
+                                 displayed_cells=len(snap['elevation_points']) if snap['valid'] else 0,
+                                 window_origin=snap['origin'].tolist(),window_m=engine.window_m,resolution_m=engine.resolution)
                 last_status=state;status_pub.publish(String(data=json.dumps(state,allow_nan=False)))
                 if not a.audit_only and (mono>=next_visual or snap['valid']!=last_visual_valid):
-                    for key,message in messages(snap).items():pubs[key].publish(message)
+                    for key,message in (preview_messages(snap) if a.reference_preview else messages(snap)).items():pubs[key].publish(message)
                     next_visual=mono+settings['publish_period_s'];last_visual_valid=snap['valid']
                 if mono>=next_report:
                     status_log.write(json.dumps(state,allow_nan=False)+'\n')

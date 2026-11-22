@@ -1,0 +1,25 @@
+{
+  "implemented_at": "2026-11-22T19:14:00.964296+08:00",
+  "based_on_commit": "2ffd2201d26592eb32338d5d81448af83434613f",
+  "mode": "lidar-preview",
+  "algorithm": "rolling raw-return grid, not TerrainMap ground/traversability classification",
+  "calibration_claimed": false,
+  "motion_commands_sent": 0,
+  "control_ownership_changed": false,
+  "software_checks": 210,
+  "software_all_passed": true,
+  "new_tests": 17,
+  "test_log": "logs/20261122_191318_test_2b2d6e08",
+  "hardware_motion_acceptance": "pending",
+  "real_ros_at_implementation": "not_yet_started",
+  "original_simulation_control_and_calibration_unchanged": true,
+  "source_sha256": {
+    "perception/reference_preview.py": "83c19918e72d933f450881cfa4de01083f2a5fb8485a5b532c3717b65223d22a",
+    "perception/ros_node.py": "990909c3f52d823a1fdc1e648699e8cf7d5c9aed1420623f126b0ea027857b49",
+    "scripts/run.py": "7b4af9ecc8b7c8b214aa6bbdda5dd6d1faf8f5f8095f2700f137deeadcc27cc7",
+    "config/lidar_preview.json": "9f8fcba5a649c4b90332660772faf8e2fccc4ca2ed24ab4ffad3b1f6c1b7b94e",
+    "config/lidar_preview.rviz": "10ac5718439ad87d24e82c85fe39fb10cb2b2d52854e0eaabd851adf131457bc",
+    "tests/test_reference_preview.py": "b2f7071ee254eb6cc58076224ce5662df0e57a347f3eed8e80d546093a177436",
+    "docs/LIDAR_PREVIEW.md": "fd6422b52fd13af1888030dcb4643bd446a97287e94bb38be2a670e073652c92"
+  }
+}

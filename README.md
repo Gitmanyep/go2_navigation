@@ -85,6 +85,17 @@ rviz -d /home/unitree/go2_navigation_github/config/perception.rviz
 
 笔记本可先用 `./bin/go2-nav perception-demo` 做不依赖 ROS 的合成移动检查。日志在本次 `LOG/perception/`，不上传 Git；演示通过不代表物理标定或实机建图通过。
 
+## 未标定雷达参考滚动预览
+
+机载原雷达与 Point-LIO 已运行时，可使用独立显示入口：
+
+```bash
+/home/unitree/go2_navigation_github/bin/go2-nav lidar-preview
+rviz -d /home/unitree/go2_navigation_github/config/lidar_preview.rviz
+```
+
+它显示 6×6 米滚动窗口、最近 3 秒注册回波和每格最低／最高回波，**不使用机身外参、不做地面或可通行性分类、不调用 TerrainMap 或运动接口**。全部输出位于 `/go2/lidar_preview/`，明确标为未标定，断流清空显示；原厂遥控器仍由操作者使用。它只用于初步观察滚动及数据稳定性，不能作为正式 TerrainMap 或机身碰撞验收。遥控异常先做静态检查。详细启动、图例、日志和验收方法见 [LIDAR_PREVIEW.md](docs/LIDAR_PREVIEW.md)。
+
 ## NoMachine 手动面板
 
 在 NoMachine 的机载终端启动：
