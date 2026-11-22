@@ -170,7 +170,7 @@ def preview_messages(snapshot):
     text.type = Marker.TEXT_VIEW_FACING; text.action = Marker.ADD
     text.pose.orientation.w = 1.
     text.pose.position.x = x+side/2; text.pose.position.y = y+side/2; text.pose.position.z = z+1.2
-    text.scale.z = .23
+    text.scale.z = .065
     text.color.r = 1.; text.color.g = .8; text.color.b = .1; text.color.a = 1.
     text.text = 'UNCALIBRATED / NO CONTROL\n'+('LIVE: returns only, not ground' if valid else 'STALE / WAITING: points cleared')
     result['warning'] = text

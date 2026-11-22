@@ -56,3 +56,5 @@ rosbag record -O /home/unitree/go2_navigation_github/local/lidar_preview.bag /cl
 ```
 
 先静止看墙面，再由操作者用原厂遥控器低速前进、退回和转向。看固定物体是否保持世界位置、窗口是否跟随、边缘新区域是否为空缺；实际误差应结合已知距离或录像。遥控失效未查明时不做移动测试。
+
+相机跟随行为使用 RViz 原生 [ThirdPersonFollower 实现](https://github.com/ros-visualization/rviz/blob/noetic-devel/src/rviz/default_plugin/view_controllers/third_person_follower_view_controller.cpp)，仅改变显示，不请求机器人转向。
