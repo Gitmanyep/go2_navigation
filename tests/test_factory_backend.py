@@ -6,7 +6,7 @@ import unittest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'control'))
 from factory_backend import FactoryVelocityClient, StateFeedback
-from manual_panel import PulseController
+from manual_panel import PulseController, make_directions
 
 
 class FakeSport:
@@ -174,15 +174,43 @@ class FactoryBackendTests(unittest.TestCase):
         self.assertIsNone(controller.fault)
         self.assertEqual(self.events[-2:],[('sport_stop',),('source',False)])
 
-    def test_duration_above_one_second_is_rejected_and_cancels_active_pulse(self):
+    def test_duration_above_hard_limit_is_rejected_and_cancels_active_pulse(self):
         self.client.arm()
         controller=PulseController(self.client,clock=lambda:self.t[0])
         controller.request((.1,0.,0.),duration=1.)
-        with self.assertRaises(ValueError):controller.request((.1,0.,0.),duration=1.0001)
+        with self.assertRaises(ValueError):controller.request((.1,0.,0.),duration=1.8001)
         controller.tick()
         self.assertFalse(controller.active)
         self.assertFalse(self.client.api_owned)
         self.assertNotIn(('avoid_move',(.1,0.,0.)),self.events)
+
+    def test_requested_profile_signs_limits_and_deadline(self):
+        directions=make_directions(.8,1.)
+        self.assertEqual(directions,dict(forward=(.8,0.,0.),backward=(-.8,0.,0.),
+                                        left=(0.,0.,1.),right=(0.,0.,-1.)))
+        for velocity in directions.values():
+            self.client.arm()
+            controller=PulseController(self.client,clock=lambda:self.t[0],linear_limit=.8,angular_limit=1.)
+            start=self.t[0]
+            controller.request(velocity,duration=1.8);controller.tick()
+            self.assertIn(('avoid_move',velocity),self.events)
+            self.t[0]=start+1.81;self.observe();controller.tick()
+            self.assertFalse(controller.active)
+            self.assertFalse(self.client.api_owned)
+            self.assertIsNone(controller.fault)
+
+    def test_default_profile_still_rejects_high_speed(self):
+        controller=PulseController(self.client)
+        with self.assertRaises(ValueError):controller.request((.8,0.,0.),duration=1.8)
+        self.assertEqual(make_directions()['forward'],(.1,0.,0.))
+
+    def test_explicit_profile_rejects_over_limit_and_nonfinite_parameters(self):
+        for linear,angular in ((.8001,1.),(.8,1.0001),(float('nan'),1.),(.8,float('inf')),(0.,1.),(.8,-1.)):
+            with self.assertRaises(ValueError):make_directions(linear,angular)
+        controller=PulseController(self.client,linear_limit=.8,angular_limit=1.)
+        for velocity in ((.8001,0.,0.),(.6,.6,0.),(0.,0.,1.0001)):
+            with self.assertRaises(ValueError):controller.request(velocity,duration=1.8)
+        self.assertEqual(self.events,[])
 
     def test_stale_feedback_prevents_arm(self):
         self.t[0]=.31

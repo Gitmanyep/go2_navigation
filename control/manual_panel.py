@@ -4,15 +4,30 @@ import argparse, datetime, fcntl, hashlib, json, math, os, signal, sys
 import threading, time
 from pathlib import Path
 
-PULSE_DURATIONS = (.3, .5, 1.)
+PULSE_DURATIONS = (.3, .5, 1., 1.8)
+MAX_LINEAR_MPS = .8
+MAX_ANGULAR_RADPS = 1.
 MAX_PULSE_S = max(PULSE_DURATIONS)
 
 DIRECTIONS = {'forward': (.1,0.,0.), 'backward': (-.1,0.,0.),
               'left': (0.,0.,.25), 'right': (0.,0.,-.25)}
 
+def make_directions(linear_speed=.1, turn_speed=.25):
+    linear_speed, turn_speed = float(linear_speed), float(turn_speed)
+    if not math.isfinite(linear_speed) or not 0 < linear_speed <= MAX_LINEAR_MPS:
+        raise ValueError('前后速度必须大于 0 且不超过 0.8 m/s')
+    if not math.isfinite(turn_speed) or not 0 < turn_speed <= MAX_ANGULAR_RADPS:
+        raise ValueError('转向速度必须大于 0 且不超过 1.0 rad/s')
+    return {'forward':(linear_speed,0.,0.), 'backward':(-linear_speed,0.,0.),
+            'left':(0.,0.,turn_speed), 'right':(0.,0.,-turn_speed)}
+
+
 class PulseController:
     """No SDK or GUI dependencies; a worker ticks independently of the GUI."""
-    def __init__(self, client, emit=lambda *args, **kw: None, clock=time.monotonic):
+    def __init__(self, client, emit=lambda *args, **kw: None, clock=time.monotonic,
+                 linear_limit=.1, angular_limit=.4):
+        make_directions(linear_limit, angular_limit)  # Validate limits before any output.
+        self.linear_limit, self.angular_limit = float(linear_limit), float(angular_limit)
         self.client, self.emit, self.clock = client, emit, clock
         self.lock = threading.RLock()
         self.command = (0.,0.,0.)
@@ -27,7 +42,7 @@ class PulseController:
                 duration = float(duration)
                 if len(v)!=3 or not all(math.isfinite(x) for x in v+(duration,)):
                     raise ValueError('Command must contain finite numbers')
-                if math.hypot(v[0],v[1]) > .100001 or abs(v[2]) > .400001:
+                if math.hypot(v[0],v[1]) > self.linear_limit or abs(v[2]) > self.angular_limit:
                     raise ValueError('Speed exceeds manual test limits')
                 if not .05 <= duration <= MAX_PULSE_S:
                     raise ValueError('Duration must be between 0.05 and %s seconds' % MAX_PULSE_S)
@@ -108,7 +123,7 @@ class SessionLog:
         self.stream=(self.root/'events.jsonl').open('a',buffering=1)
         self.meta={'started_at':now.isoformat(),'argv':sys.argv,'pid':os.getpid(),
                    'mode':'live' if live else 'preview','script_sha256':hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-                   'linear_limit_mps':.1,'angular_limit_radps':.4,'pulse_limit_s':MAX_PULSE_S,
+                   'linear_limit_mps':MAX_LINEAR_MPS,'angular_limit_radps':MAX_ANGULAR_RADPS,'pulse_limit_s':MAX_PULSE_S,
                    'automatic_obstacle_avoidance':False}
         self.save()
     def save(self):
@@ -160,10 +175,17 @@ def main():
     p.add_argument('--live',action='store_true',help='Connect to factory SDK; movement only after a button click')
     p.add_argument('--iface',default='eth0')
     p.add_argument('--pulse-seconds',type=float,choices=PULSE_DURATIONS,default=.3,
-                   help='Initial short-pulse duration; hard maximum is 1.0 second')
+                   help='Initial short-pulse duration; hard maximum is 1.8 seconds')
+    p.add_argument('--linear-speed',type=float,default=.1,help='Forward/backward request speed in m/s (0, 0.8]')
+    p.add_argument('--turn-speed',type=float,default=.25,help='Yaw request speed in rad/s (0, 1.0]')
     args=p.parse_args()
+    try:directions=make_directions(args.linear_speed,args.turn_speed)
+    except (ValueError,OverflowError) as e:p.error(str(e))
     log=SessionLog(args.live)
-    log.meta['initial_pulse_s']=args.pulse_seconds;log.save()
+    log.meta.update(initial_pulse_s=args.pulse_seconds,linear_speed_mps=args.linear_speed,
+                    turn_speed_radps=args.turn_speed,linear_limit_mps=args.linear_speed,
+                    angular_limit_radps=args.turn_speed)
+    log.save()
     lockfile=None
     try:
         if args.live:
@@ -185,14 +207,14 @@ def main():
     import tkinter.font as tkfont
     from tkinter import ttk
     root=tk.Tk();root.title('Go2 手动控制 — '+('实机' if args.live else '预览，不发送指令'))
-    root.geometry('840x700')
+    root.geometry('840x760')
     # Conda Tk on this Jetson exposes X11 Chinese bitmap fonts, not fontconfig aliases.
     families=set(tkfont.families(root))
     family='fangsong ti' if 'fangsong ti' in families else 'Sans'
     for name in ['TkDefaultFont','TkTextFont','TkMenuFont','TkHeadingFont']:
         tkfont.nametofont(name).configure(family=family,size=12,weight='normal')
     ttk.Style(root).configure('TButton',font=(family,13))
-    controller=PulseController(client,log.emit)
+    controller=PulseController(client,log.emit,linear_limit=args.linear_speed,angular_limit=args.turn_speed)
     finished=threading.Event()
     def worker():
         while not finished.is_set():
@@ -208,12 +230,19 @@ def main():
     thread=threading.Thread(target=worker,daemon=True);thread.start()
     panel=ttk.Frame(root,padding=20);panel.pack(fill='both',expand=True)
     ttk.Label(panel,text='实机短动作控制' if args.live else '预览模式：不会发送机器人指令',font=(family,16)).pack(pady=6)
-    ttk.Label(panel,text='前后请求速度 0.1 米/秒；转向请求速度 0.25 弧度/秒。').pack(pady=4)
+    ttk.Label(panel,text='前后请求速度 %g 米/秒；转向请求速度 %g 弧度/秒。'%(args.linear_speed,args.turn_speed)).pack(pady=4)
     duration=tk.StringVar(value='%.1f'%args.pulse_seconds)
     duration_row=ttk.Frame(panel);duration_row.pack(pady=4)
     ttk.Label(duration_row,text='本次短动作时长（秒）：').pack(side='left')
     duration_box=ttk.Combobox(duration_row,textvariable=duration,values=tuple('%.1f'%x for x in PULSE_DURATIONS),state='readonly',width=5)
     duration_box.pack(side='left')
+    nominal=tk.StringVar()
+    def update_nominal(*_):
+        seconds=float(duration.get())
+        nominal.set('名义请求量：前后 %.2fm；转向约 %.0f°（非实测，需另留停止距离）'%
+                    (args.linear_speed*seconds,math.degrees(args.turn_speed*seconds)))
+    duration.trace_add('write',update_nominal);update_nominal()
+    ttk.Label(panel,textvariable=nominal,wraplength=790).pack(pady=4)
     if args.live:
         ttk.Label(panel,text='当前通道：'+client.backend+'；原厂避障：'+('开启（保持原状）' if client.avoidance_enabled else '关闭（保持原状）')).pack(pady=4)
         ttk.Label(panel,text='先确认站稳并接管，再点一个方向；动作结束交还 API 指令源。\n接管期间遥控接管效果须现场验证，停止异常时用原厂遥控器处理。',foreground='#a34a00',justify='center').pack(pady=4)
@@ -238,7 +267,7 @@ def main():
     direction_buttons=[]
     def action(name):
         try:
-            if controller.request(DIRECTIONS[name],duration=float(duration.get())):status.set(('发送请求：' if args.live else '预览：')+name)
+            if controller.request(directions[name],duration=float(duration.get())):status.set(('发送请求：' if args.live else '预览：')+name)
         except Exception as e:status.set(str(e))
     for name,text,row,col in [('forward','前进 ↑',0,1),('left','左转 ↶',1,0),('right','右转 ↷',1,2),('backward','后退 ↓',2,1)]:
         button=ttk.Button(grid,text=text,width=16,command=lambda n=name:action(n))
