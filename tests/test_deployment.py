@@ -30,7 +30,7 @@ class DeploymentTests(unittest.TestCase):
             self.assertEqual(meta['mode'], 'doctor')
             self.assertFalse(meta['robot_motion_backend_enabled'])
             self.assertEqual(meta['exit_code'], 0)
-            self.assertEqual((runs[0]/'config.json').read_bytes(), (ROOT/'navigation/config.json').read_bytes())
+            self.assertEqual((runs[0]/'config.json').read_bytes(), (ROOT/'simulation/config.json').read_bytes())
             self.assertIn('preview_only', (runs[0]/'terminal.log').read_text())
 
     def test_preview_rejects_mode_override(self):
@@ -45,18 +45,18 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(p.returncode, 2)
 
     def test_navigation_has_no_hardware_import(self):
-        for source in (ROOT/'navigation').glob('*.py'):
+        for source in (ROOT/'simulation').glob('*.py'):
             tree = ast.parse(source.read_text())
             for node in ast.walk(tree):
                 names = [a.name for a in node.names] if isinstance(node, ast.Import) else [node.module or ''] if isinstance(node, ast.ImportFrom) else []
                 for name in names:
                     self.assertFalse(name.startswith(('unitree_sdk2', 'cyclonedds')), (source.name, name))
-        text = (ROOT/'navigation/ros_node.py').read_text()
+        text = (ROOT/'simulation/ros_node.py').read_text()
         self.assertNotIn('/cmd_vel', text)
         self.assertIn("prefix='/go2/framework_v3'", text)
 
     def test_calibration_stays_unmeasured(self):
-        cfg = json.loads((ROOT/'navigation/config.json').read_text())
+        cfg = json.loads((ROOT/'simulation/config.json').read_text())
         self.assertFalse(cfg['geometry_calibrated'])
         self.assertFalse(cfg['lidar_extrinsics_calibrated'])
 

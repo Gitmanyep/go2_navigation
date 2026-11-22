@@ -1,15 +1,17 @@
-# Go2 导航工程
+# Go2 仿真与实机手动测试工程
 
-这是独立的导航 Git 仓库。以 `tools/go2_framework_sim_v3_20261122` 为导航基线，保留连续三维声源方向、地形分析、朝向规划、超时与未知区域停车逻辑；另含原手动面板的独立副本。
+这是独立的 Git 仓库，包含仿真、候选路径预览、实机手动控制和只读监测。`simulation/` 以 `tools/go2_framework_sim_v3_20261122` 为基线，用于验证连续三维声源方向、地形分析、朝向规划、超时与未知区域处理。
 
-导航目前只输出规划路径和候选速度，尚未接通实机自主运动后端。仿真验收不能代替实机验收。头架尺寸、雷达和麦克风外参仍未测量，配置保持未标定。
+**`simulation/` 是仿真与规划验证代码，不是已经可用的实机自主导航程序。** 其中的 ROS `preview` 可以读取真实雷达／定位数据，但只输出规划路径和候选速度，尚未接通实机自主运动后端。仿真验收不能代替实机验收。头架尺寸、雷达和麦克风外参仍未测量，配置保持未标定。
+
+实机短动作与只读反馈工具在 `control/`：`manual-live` 由操作者点击后才发送运动请求；`monitor` 只订阅状态。仿真 `gui`／`sim` 和 ROS `preview` 不会调用实机运动接口。实机目前能使用手动面板运动，不等于仿真规划已经能控制实物自主避障。
 
 ## 文件与原件
 
 | 内容 | 位置 | 是否纳入 Git |
 |---|---|---|
-| 完整 v3 仿真、导航源码、GUI、回放与回归测试 | `navigation/` | 是 |
-| v3 原始场景报告、轨迹、地图快照、图像和验收材料 | `navigation/validation/` | 是，作为该版本的历史验证基线 |
+| 仿真、规划算法、GUI、回放、只输出候选结果的 ROS 预览与回归测试 | `simulation/` | 是 |
+| v3 原始场景报告、轨迹、地图快照、图像和验收材料 | `simulation/validation/` | 是，作为该版本的历史验证基线 |
 | 手动面板、只读监测、早期方向转换工具与测试 | `control/` | 是；方向转换工具是历史接口示例，导航使用自身 DirectionManager |
 | 唯一启动入口、日志与部署工具 | `bin/`、`scripts/` | 是 |
 | 固定依赖、ROS 包与启动配置 | `config/`、`package.xml`、`launch/` | 是 |
@@ -18,7 +20,7 @@
 | 虚拟环境、离线包、部署记录和 bundle | `.venv/`、`artifacts/` | 否 |
 | 旧 backup、原工作空间、SDK、bag、点云地图、模型 | 原有目录 | 不复制进本仓库 |
 
-原始 `backup/`、`tools/` 版本和机载旧目录保持原样。`navigation/` 中导入的 v3 源码保持原版；手动面板的后续适配见 CHANGELOG。首次来源见 [import_manifest.json](provenance/import_manifest.json)，完整 v3 补齐记录见 [v3_full_import.json](provenance/v3_full_import.json)。`navigation/manifest.json` 保存原版逐文件 SHA256。`docs/*original*` 是历史说明，工程统一启动命令以本 README 为准。
+原始 `backup/`、`tools/` 版本和机载旧目录保持原样。`simulation/` 中导入的 v3 源码保持原版；手动面板的后续适配见 CHANGELOG。首次来源见 [import_manifest.json](provenance/import_manifest.json)，完整 v3 补齐记录见 [v3_full_import.json](provenance/v3_full_import.json)。`simulation/manifest.json` 保存原版逐文件 SHA256。目录由 `navigation/` 更名为 `simulation/`，目录内文件内容未变；历史导入清单保留当时路径，新旧路径映射和哈希复核见 [directory_rename_20261122.json](provenance/directory_rename_20261122.json)。`docs/*original*` 是历史说明，工程统一启动命令以本 README 为准。
 
 笔记本仓库：`/media/leon/新加卷/dog_project/go2_navigation`。
 机载仓库：`/home/unitree/go2_navigation`。
@@ -44,7 +46,7 @@ Git 不会自动改变机器人调用的程序。使用以下绝对路径，执�
 
 ## 笔记本测试与仿真
 
-**指定的 `tools/go2_framework_sim_v3_20261122` 版本已完整收入 `navigation/`**，共 661 个原版文件（不含 Python 缓存），内容逐一相同。不是只有 ROS 接口：包含交互 GUI、25 个场景、仿真模型、头架几何、规划器、独立审计、可视化工具和原版验证材料。
+**指定的 `tools/go2_framework_sim_v3_20261122` 版本已完整收入 `simulation/`**，共 661 个原版文件（不含 Python 缓存），内容逐一相同。不是只有 ROS 接口：包含交互 GUI、25 个场景、仿真模型、头架几何、规划器、独立审计、可视化工具和原版验证材料。
 
 ```bash
 cd /media/leon/新加卷/dog_project/go2_navigation
@@ -57,7 +59,7 @@ cd /media/leon/新加卷/dog_project/go2_navigation
 
 每次运行新建 `logs/时间_模式_随机编号/`，包含 `metadata.json`（完整命令、Git 提交、工作区是否有修改、Python 及退出码）、参数副本 `config.json` 和 `terminal.log`。仿真结果在该目录的 `simulation/`。日志不提交 Git。
 
-`navigation/validation/` 是随原版导入的历史记录。以后新产生的运行日志、轨迹和地图仍留在被忽略的 `logs/` 或 `navigation/runs/`，不会自动混入历史基线。
+`simulation/validation/` 是随原版导入的历史记录。以后新产生的运行日志、轨迹和地图仍留在被忽略的 `logs/` 或 `simulation/runs/`，不会自动混入历史基线。
 
 `doctor` 和 `test` 不导入 SDK、不发送运动指令。机载系统 Python 原先存在 NumPy/SciPy 版本冲突，新部署使用本仓库 `.venv`，不会升级原系统或用户包。`bin/go2-nav` 优先使用 `.venv/bin/python3`，禁用用户 site-packages；ROS 路径仅在预览子进程显式加载 Noetic。
 

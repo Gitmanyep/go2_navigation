@@ -1,0 +1,24 @@
+{
+  "renamed_at": "2026-11-22T18:12:37.882137+08:00",
+  "previous_prefix": "navigation/",
+  "current_prefix": "simulation/",
+  "tracked_file_count": 661,
+  "all_file_contents_unchanged": true,
+  "relative_paths_and_hashes_sha256": "69d7e38566c85b1da9282f0bbdc1321e53ba591984ca91b554a930214b74a0db",
+  "historical_import_records_preserved": [
+    "provenance/import_manifest.json",
+    "provenance/v3_full_import.json"
+  ],
+  "historical_records_path_resolution": "For historical destination/source_manifest paths starting with navigation/, replace that prefix with simulation/.",
+  "original_tools_directory_modified": false,
+  "onboard_updated": false,
+  "validation": {
+    "software_checks_passed": 167,
+    "original_manifest_file_hashes_match": 661,
+    "simulation_scenario": "gentle_slope",
+    "simulation_passed": true,
+    "motion_commands_sent": 0,
+    "static_log": "logs/20261122_181237_test_57f20ad2",
+    "simulation_log": "logs/20261122_181250_sim_c0bb2651"
+  }
+}

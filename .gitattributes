@@ -1,3 +1,3 @@
 # Preserve historical reports byte-for-byte; they are generated evidence, not source edits.
-navigation/validation/** -whitespace linguist-generated=true
-navigation/manifest.json linguist-generated=true
+simulation/validation/** -whitespace linguist-generated=true
+simulation/manifest.json linguist-generated=true

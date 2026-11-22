@@ -31,7 +31,7 @@ def doctor():
                                  path=getattr(m, '__file__', None))
         except ImportError as exc:
             modules[name] = dict(available=False, error=str(exc))
-    cfg = json.loads((ROOT/'navigation/config.json').read_text())
+    cfg = json.loads((ROOT/'simulation/config.json').read_text())
     result = dict(root=str(ROOT), commit=git('rev-parse', 'HEAD'),
                   dirty=bool(git('status', '--porcelain')), python=sys.executable,
                   architecture=platform.machine(), modules=modules,
@@ -46,7 +46,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('mode', nargs='?', default='doctor', choices=(
         'doctor', 'test', 'sim', 'gui', 'preview', 'manual-preview', 'manual-live', 'monitor', 'monitor-demo'))
-    p.add_argument('--config', type=Path, default=ROOT/'navigation/config.json')
+    p.add_argument('--config', type=Path, default=ROOT/'simulation/config.json')
     p.add_argument('--log-root', type=Path, default=ROOT/'logs')
     a, extra = p.parse_known_args()
     if extra and extra[0] == '--':
@@ -90,7 +90,7 @@ def main():
     if a.mode != 'gui':
         env.setdefault('MPLBACKEND', 'Agg')
     py = sys.executable
-    nav = ROOT/'navigation'
+    nav = ROOT/'simulation'
     commands = []
     if a.mode == 'doctor':
         if extra: p.error('doctor takes no extra arguments')

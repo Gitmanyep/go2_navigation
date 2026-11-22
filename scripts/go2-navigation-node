@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 import sys
 root = Path(__file__).resolve().parents[1]
-if not (root/'navigation').is_dir():
+if not (root/'simulation').is_dir():
     root = Path(__file__).resolve().parents[2]/'share/go2_navigation'
 python = str(root/'.venv/bin/python3') if (root/'.venv/bin/python3').exists() else '/usr/bin/python3'
 os.environ['PYTHONNOUSERSITE'] = '1'
