@@ -1,0 +1,106 @@
+{
+  "source": "synthetic_60000_points_with_repeated_returns",
+  "host": "leon-Legion-Y9000P-IRX8",
+  "architecture": "x86_64",
+  "numpy": "1.21.5",
+  "time": "2026-11-22T23:22:12.764349+08:00",
+  "argv": [
+    "scripts/benchmark_sector.py",
+    "--repeats",
+    "15",
+    "--output",
+    "artifacts/sector_offline_resume_20261122"
+  ],
+  "input_points": 60000,
+  "repeats": 15,
+  "roi": {
+    "frame": "pointlio_reference",
+    "front_angle_deg": 130.0,
+    "front_range_m": 3.0,
+    "near_radius_m": 1.5,
+    "fine_voxel_m": 0.04,
+    "near_voxel_m": 0.12
+  },
+  "centre": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "yaw_deg": 0.0,
+  "robot_connected": false,
+  "robot_commands_sent": 0,
+  "live_data_age_verified": false,
+  "hardware_acceptance": "pending_onboard_retest",
+  "timings": {
+    "legacy_xyz_rows": {
+      "median_ms": 12.015061998681631,
+      "p95_ms": 12.254128001222853,
+      "output_points": 3950,
+      "samples_ms": [
+        12.096129998099059,
+        11.974844001088059,
+        12.366457001917297,
+        12.052441998093855,
+        11.67704899853561,
+        12.205987000925234,
+        11.812464999820804,
+        11.998126999969827,
+        12.015061998681631,
+        11.89683399934438,
+        12.054762999468949,
+        12.097623002773616,
+        12.113884997233981,
+        11.949802003073273,
+        12.014095998893026
+      ]
+    },
+    "integer_voxel_keys": {
+      "median_ms": 5.013108002458466,
+      "p95_ms": 5.091795100815943,
+      "output_points": 3950,
+      "samples_ms": [
+        5.087146000732901,
+        5.080933002318488,
+        4.988160999346292,
+        5.073478998383507,
+        4.96129299790482,
+        5.013108002458466,
+        5.054799999925308,
+        5.10264300100971,
+        4.988244003470754,
+        5.021932996896794,
+        4.892778000794351,
+        4.980178997357143,
+        5.01827200059779,
+        4.97115499820211,
+        4.927067999233259
+      ]
+    }
+  },
+  "same_original_points_in_same_order": true,
+  "median_speedup_this_host_only": 2.3967291334615877,
+  "selection_metrics": {
+    "enabled": true,
+    "frame": "pointlio_reference",
+    "front_angle_deg": 130.0,
+    "front_range_m": 3.0,
+    "near_radius_m": 1.5,
+    "fine_voxel_m": 0.04,
+    "near_voxel_m": 0.12,
+    "input_points": 60000,
+    "fine_candidates": 17184,
+    "near_candidates": 7152,
+    "fine_points": 2855,
+    "near_points": 1095,
+    "output_points": 3950,
+    "outside_points": 35664,
+    "downsampled": true,
+    "cropped_regions_are_free": false,
+    "body_alignment_verified": false,
+    "collision_clearance_verified": false
+  },
+  "last_confirmed_onboard_commit": "3cb7e47a2cbe6d2e31ac1c5c07307cc537c0ab2a",
+  "runtime_fix_commit": "cdbf177",
+  "interrupted_sync_was_executed": false,
+  "previous_256_checks_still_apply_to_unchanged_runtime": true
+}
