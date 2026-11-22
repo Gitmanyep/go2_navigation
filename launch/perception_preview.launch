@@ -1,0 +1,16 @@
+<launch>
+  <arg name="config" default="$(find go2_navigation)/config/perception.json"/>
+  <arg name="calibration" default="$(find go2_navigation)/config/calibration.template.json"/>
+  <arg name="cloud_topic" default="/cloud_registered"/>
+  <arg name="odom_topic" default="/aft_mapped_to_init"/>
+  <arg name="direction_topic" default="/go2/navigation/direction"/>
+  <arg name="rviz" default="false"/>
+  <node pkg="go2_navigation" type="go2-perception-node" name="go2_perception_mapping" output="screen"
+        args="--config $(arg config) --calibration $(arg calibration)">
+    <remap from="/cloud_registered" to="$(arg cloud_topic)"/>
+    <remap from="/aft_mapped_to_init" to="$(arg odom_topic)"/>
+    <remap from="/go2/navigation/direction" to="$(arg direction_topic)"/>
+  </node>
+  <node if="$(arg rviz)" pkg="rviz" type="rviz" name="go2_perception_rviz"
+        args="-d $(find go2_navigation)/config/perception.rviz"/>
+</launch>

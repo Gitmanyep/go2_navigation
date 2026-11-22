@@ -1,0 +1,65 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Fixed Frame: camera_init
+    Background Color: 30; 30; 30
+    Frame Rate: 15
+  Displays:
+    - Class: rviz/Grid
+      Name: Reference grid
+      Enabled: true
+      Cell Size: 1
+      Plane Cell Count: 30
+    - Class: rviz/PointCloud2
+      Name: Raw registered input
+      Enabled: true
+      Topic: /cloud_registered
+      Queue Size: 1
+      Style: Points
+      Size (Pixels): 2
+      Decay Time: 0
+      Color Transformer: AxisColor
+      Axis: Z
+    - Class: rviz/Map
+      Name: Terrain occupancy and unknown
+      Enabled: true
+      Topic: /go2/perception/map
+      Alpha: 0.65
+      Color Scheme: map
+    - Class: rviz/PointCloud2
+      Name: Observed elevation
+      Enabled: true
+      Topic: /go2/perception/elevation
+      Queue Size: 1
+      Style: Points
+      Size (Pixels): 4
+      Decay Time: 0
+      Color Transformer: AxisColor
+      Axis: Z
+    - Class: rviz/PointCloud2
+      Name: Retained 3D obstacles
+      Enabled: true
+      Topic: /go2/perception/obstacles
+      Queue Size: 1
+      Style: Points
+      Size (Pixels): 5
+      Decay Time: 0
+      Color Transformer: FlatColor
+      Color: 255; 70; 70
+    - Class: rviz/Pose
+      Name: Calibrated body pose
+      Enabled: true
+      Topic: /go2/perception/body_pose
+      Shape: Axes
+  Views:
+    Current:
+      Class: rviz/Orbit
+      Distance: 12
+      Pitch: 0.8
+      Yaw: 0.8
+Window Geometry:
+  Width: 1280
+  Height: 800

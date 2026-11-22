@@ -45,20 +45,21 @@ def doctor():
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('mode', nargs='?', default='doctor', choices=(
-        'doctor', 'test', 'sim', 'gui', 'preview', 'manual-preview', 'manual-live', 'monitor', 'monitor-demo'))
-    p.add_argument('--config', type=Path, default=ROOT/'simulation/config.json')
+        'doctor', 'test', 'sim', 'gui', 'preview', 'manual-preview', 'manual-live', 'monitor', 'monitor-demo', 'data-audit', 'mapping', 'perception-demo'))
+    p.add_argument('--config', type=Path)
     p.add_argument('--log-root', type=Path, default=ROOT/'logs')
     a, extra = p.parse_known_args()
     if extra and extra[0] == '--':
         extra = extra[1:]
-    cfg_path = a.config.resolve()
+    perception_mode=a.mode in ('data-audit','mapping','perception-demo')
+    cfg_path = (a.config or ROOT/('config/perception.json' if perception_mode else 'simulation/config.json')).resolve()
     if not cfg_path.is_file():
         p.error('config file missing: '+str(cfg_path))
     if a.mode in ('preview', 'sim', 'gui') and any(
             x in ('--mode', '--config', '--output') or x.startswith(('--mode=', '--config=', '--output=')) for x in extra):
         p.error('use the top-level mode/--config; output is managed by the launcher')
-    if a.mode in ('monitor','monitor-demo') and any(x=='--output' or x.startswith('--output=') for x in extra):
-        p.error('monitor output is managed by the launcher')
+    if a.mode in ('monitor','monitor-demo','data-audit','mapping','perception-demo') and any(x in ('--output','--settings') or x.startswith(('--output=','--settings=')) for x in extra):
+        p.error('output/settings are managed by the launcher')
     if a.mode == 'manual-preview' and '--live' in extra:
         p.error('use manual-live explicitly')
     now = datetime.datetime.now().astimezone()
@@ -103,16 +104,22 @@ def main():
     elif a.mode in ('sim', 'gui'):
         commands = [[py, str(nav/'simulation.py'), '--config', str(cfg_path),
                      *(['--gui'] if a.mode == 'gui' else ['--output', str(run/'simulation')]), *extra]]
-    elif a.mode == 'preview':
+    elif a.mode=='perception-demo':
+        commands=[[py,str(ROOT/'perception/demo.py'),'--settings',str(cfg_path),'--output',str(run/'perception'),*extra]]
+    elif a.mode in ('preview','data-audit','mapping'):
         setup = Path('/opt/ros/noetic/setup.bash')
         if not setup.exists():
-            meta['error'] = 'ROS Noetic is required for the onboard preview adapter'
+            meta['error'] = 'ROS Noetic is required for this read-only onboard adapter'
             meta['exit_code'] = 2
             save()
             print(meta['error'], file=sys.stderr)
             return 2
-        commands = [['/bin/bash', '-c', 'source /opt/ros/noetic/setup.bash; exec "$@"',
-                     'go2-nav', py, str(nav/'ros_node.py'), '--mode', 'preview', '--config', str(cfg_path), *extra]]
+        if a.mode=='preview':
+            target=[py,str(nav/'ros_node.py'),'--mode','preview','--config',str(cfg_path),*extra]
+        else:
+            target=[py,str(ROOT/'perception/ros_node.py'),'--settings',str(cfg_path),'--output',str(run/'perception'),
+                    *(['--audit-only'] if a.mode=='data-audit' else []),*extra]
+        commands=[['/bin/bash','-c','source /opt/ros/noetic/setup.bash; exec "$@"','go2-nav',*target]]
     else:
         if a.mode in ('manual-live','monitor'):
             py = '/home/unitree/miniforge3/envs/rl/bin/python'

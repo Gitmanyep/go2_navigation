@@ -1,6 +1,6 @@
 # Go2 仿真与实机手动测试工程
 
-这是独立的 Git 仓库，包含仿真、候选路径预览、实机手动控制和只读监测。`simulation/` 以 `tools/go2_framework_sim_v3_20261122` 为基线，用于验证连续三维声源方向、地形分析、朝向规划、超时与未知区域处理。
+这是独立的 Git 仓库，包含仿真、候选路径预览、真实数据审计与局部建图、实机手动控制和只读监测。`simulation/` 以 `tools/go2_framework_sim_v3_20261122` 为基线，用于验证连续三维声源方向、地形分析、朝向规划、超时与未知区域处理。
 
 **`simulation/` 是仿真与规划验证代码，不是已经可用的实机自主导航程序。** 其中的 ROS `preview` 可以读取真实雷达／定位数据，但只输出规划路径和候选速度，尚未接通实机自主运动后端。仿真验收不能代替实机验收。头架尺寸、雷达和麦克风外参仍未测量，配置保持未标定。
 
@@ -13,6 +13,7 @@
 | 仿真、规划算法、GUI、回放、只输出候选结果的 ROS 预览与回归测试 | `simulation/` | 是 |
 | v3 原始场景报告、轨迹、地图快照、图像和验收材料 | `simulation/validation/` | 是，作为该版本的历史验证基线 |
 | 手动面板、只读监测、早期方向转换工具与测试 | `control/` | 是；方向转换工具是历史接口示例，导航使用自身 DirectionManager |
+| P0 数据审计、P1 真实滚动地图接入与只读 ROS 输出 | `perception/` | 是；测量与实机验收仍待完成 |
 | 唯一启动入口、日志与部署工具 | `bin/`、`scripts/` | 是 |
 | 固定依赖、ROS 包与启动配置 | `config/`、`package.xml`、`launch/` | 是 |
 | 导入来源、逐文件 SHA256、历史验收摘要 | `provenance/` | 是 |
@@ -62,6 +63,27 @@ cd /media/leon/新加卷/dog_project/go2_navigation
 `simulation/validation/` 是随原版导入的历史记录。以后新产生的运行日志、轨迹和地图仍留在被忽略的 `logs/` 或 `simulation/runs/`，不会自动混入历史基线。
 
 `doctor` 和 `test` 不导入 SDK、不发送运动指令。机载系统 Python 原先存在 NumPy/SciPy 版本冲突，新部署使用本仓库 `.venv`，不会升级原系统或用户包。`bin/go2-nav` 优先使用 `.venv/bin/python3`，禁用用户 site-packages；ROS 路径仅在预览子进程显式加载 Noetic。
+
+## P0 数据审计与 P1 真实局部建图
+
+新增 `perception/` 专门接入真实 Point-LIO 数据，复用 TerrainMap 算法，独立于 `simulation/` 的演示入口。它不导入 Unitree SDK，不发布速度，不启动原雷达或定位程序。当前机载未连接，先完成离线软件验证，**未完成真实外参标定、时间同步、尺寸测量或移动验收**。
+
+机载更新后，先让原雷达与 Point-LIO 按既有方式运行，再检查 30 秒数据：
+
+```bash
+/home/unitree/go2_navigation_github/bin/go2-nav data-audit --seconds 30
+```
+
+确认测量和坐标关系后，使用自己的标定文件启动地图：
+
+```bash
+/home/unitree/go2_navigation_github/bin/go2-nav mapping --calibration /home/unitree/go2_navigation_github/local/calibration.json
+rviz -d /home/unitree/go2_navigation_github/config/perception.rviz
+```
+
+默认未标定模板会阻止地图输出，保留未知状态，并显示缺项。不要为出图而把标定声明改成 true。输出包括占据／未知栅格、已观测高程、三维障碍和机身位姿；源时间保留，断流或工作线程超时后地图变未知。实际 ROS 输入、坐标与标定步骤见 [P0_P1.md](docs/P0_P1.md)。这两个真实数据入口需要机载 Noetic，笔记本 ROS 2 不能直接运行。
+
+笔记本可先用 `./bin/go2-nav perception-demo` 做不依赖 ROS 的合成移动检查。日志在本次 `LOG/perception/`，不上传 Git；演示通过不代表物理标定或实机建图通过。
 
 ## NoMachine 手动面板
 

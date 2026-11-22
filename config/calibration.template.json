@@ -1,0 +1,16 @@
+{
+  "lidar_extrinsics_calibrated": false,
+  "geometry_calibrated": false,
+  "measurement_record": null,
+  "reference_frame": null,
+  "lidar_position_body_m": null,
+  "lidar_rotation_body": null,
+  "body_reference_height_m": null,
+  "geometry_boxes": [],
+  "self_filter_enabled": false,
+  "self_filter_boxes": [],
+  "mic_rotation_body": null,
+  "convention": "T_body_reference: p_body=R_body_reference @ p_reference+t_body_reference. Reference must be the actual Point-LIO odometry child reference, possibly lidar IMU, not guessed from its name.",
+  "body_axes": "x forward, y left, z up; lengths in metres, rotations in radians",
+  "note": "Fill from measured hardware. geometry_boxes are collision envelopes. Only actual solid measured parts belong in self_filter_boxes; never use the hollow head-frame envelope as a solid self filter. True flags are operator declarations, not automatic hardware acceptance."
+}

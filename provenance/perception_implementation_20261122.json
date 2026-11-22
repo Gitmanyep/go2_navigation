@@ -1,0 +1,29 @@
+{
+  "implemented_at": "2026-11-22T18:34:30.688127+08:00",
+  "software_checks_passed": 193,
+  "new_perception_checks": 26,
+  "test_log": "logs/20261122_183233_test_37996356",
+  "synthetic_scenario": "translated_body_and_fixed_world_obstacle",
+  "synthetic_scenario_passed": true,
+  "fake_ros_transport_passed": true,
+  "actual_noetic_runtime_verified": false,
+  "actual_rviz_verified": false,
+  "hardware_calibration_verified": false,
+  "hardware_movement_validation": false,
+  "onboard_updated": false,
+  "motion_commands_sent": 0,
+  "original_simulation_hashes_match": 661,
+  "manual_motion_source_unchanged": true,
+  "file_hashes": {
+    "perception/demo.py": "990778ee98c02bd69df38790f5ba35d32e33905497982060fb00b9b16fd567b8",
+    "perception/pipeline.py": "0634c3f888228e445f1254a877e073dabb9ba3110c13086087daab1ef6872f61",
+    "perception/ros_messages.py": "427f26c88643c7274015c2bc0178ffbf1ffafd4b8e8dab8de7a55b22a1621754",
+    "perception/ros_node.py": "d4e92ccb08d01b38339ac6236793c6af12f5a8bbc893315aa77bc04e03333a5b",
+    "perception/__init__.py": "f2099110268f18e518f670081bea1dde95f0fbbd7f19e2e843731cea17e160cb",
+    "config/perception.json": "22776b6656d306ef35019f28ced2add6899f0e7806ea020d17990706e2fbada6",
+    "config/calibration.template.json": "8d9ef6551dd5e435582b18720ef07db3610d026ab00a048b53c7b1d79142b0ee",
+    "config/perception.rviz": "6275d51c1b0ede4e30bd6e1bec644e3e55a9bae9ae680a2119c7b660da88ef95",
+    "launch/perception_preview.launch": "9539fc901ba91a67c573915d0eb890fa6222c2d3ee0015198267f1814e6eee95",
+    "scripts/go2-perception-node": "8764525bf19f1e752e03cf602402d39b0637325505973429701ed3a0af511c34"
+  }
+}
