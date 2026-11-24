@@ -1,0 +1,8 @@
+{
+  "interface": "eth0",
+  "dds_runtime": "/home/unitree/miniforge3/envs/rl/lib/python3.8/site-packages",
+  "cyclonedds_home": "/home/unitree/cyclonedds/install",
+  "fixed_frame": "odom",
+  "display": ":1001",
+  "radar_on": true
+}
