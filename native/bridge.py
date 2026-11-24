@@ -27,6 +27,7 @@ def main():
     from unitree_sdk2py.idl.geometry_msgs.msg.dds_ import PoseStamped_
     from unitree_sdk2py.idl.std_msgs.msg.dds_ import String_
     from unitree_sdk2py.idl.unitree_go.msg.dds_ import LidarState_
+    from cyclonedds.core import InvalidSample
     from cyclonedds.domain import DomainParticipant
     from cyclonedds.sub import DataReader
     from cyclonedds.topic import Topic
@@ -102,6 +103,8 @@ def main():
             now=time.monotonic()
             for k,reader in readers.items():
                 for m in reader.take(1):
+                    if isinstance(m,InvalidSample):
+                        continue
                     try:
                         pubs[k].publish(convert(k,m));counts[k]+=1;received[k]=now
                     except (AttributeError,TypeError,ValueError,OverflowError) as exc:
