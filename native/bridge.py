@@ -27,7 +27,7 @@ def main():
     from unitree_sdk2py.idl.geometry_msgs.msg.dds_ import PoseStamped_
     from unitree_sdk2py.idl.std_msgs.msg.dds_ import String_
     from unitree_sdk2py.idl.unitree_go.msg.dds_ import LidarState_
-    from cyclonedds.core import InvalidSample
+    from cyclonedds.internal import InvalidSample
     from cyclonedds.domain import DomainParticipant
     from cyclonedds.sub import DataReader
     from cyclonedds.topic import Topic
