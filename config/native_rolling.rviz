@@ -1,0 +1,66 @@
+Panels:
+- Class: rviz/Displays
+  Name: Displays
+Visualization Manager:
+  Class: ''
+  Global Options:
+    Fixed Frame: odom
+    Background Color: 25; 25; 25
+    Frame Rate: 3
+  Displays:
+  - Class: rviz/Grid
+    Name: Reference
+    Enabled: true
+    Cell Size: 1
+  - Class: rviz/Marker
+    Name: 'Terrain cost: green-low red-blocked gray-unknown'
+    Enabled: true
+    Marker Topic: /go2/native_rolling/terrain_overlay
+  - Class: rviz/PointCloud2
+    Name: 3D obstacles with ground support
+    Enabled: true
+    Topic: /go2/native_rolling/obstacles
+    Queue Size: 1
+    Style: Points
+    Size (Pixels): 4
+    Decay Time: 0
+    Color Transformer: FlatColor
+    Color: 255; 90; 100
+  - Class: rviz/PointCloud2
+    Name: Observed elevation (optional)
+    Enabled: false
+    Topic: /go2/native_rolling/elevation
+    Queue Size: 1
+    Style: Points
+    Size (Pixels): 4
+    Decay Time: 0
+    Color Transformer: FlatColor
+    Color: 255; 90; 100
+  - Class: rviz/Marker
+    Name: Display-only status
+    Enabled: true
+    Marker Topic: /go2/native_rolling/warning
+  - Class: rviz/PointCloud2
+    Name: Native deskewed returns (optional)
+    Enabled: false
+    Topic: /go2/native/cloud_deskewed
+    Queue Size: 1
+    Style: Points
+    Size (Pixels): 2
+    Decay Time: 0
+    Color Transformer: AxisColor
+    Axis: Z
+  Views:
+    Current:
+      Class: rviz/ThirdPersonFollower
+      Target Frame: base_link
+      Distance: 4.5
+      Pitch: 0.5
+      Yaw: 3.14159265
+      Focal Point:
+        X: 1.2
+        Y: 0.0
+        Z: 0.0
+Window Geometry:
+  Width: 1200
+  Height: 760

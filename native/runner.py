@@ -7,6 +7,7 @@ def main():
     parser=argparse.ArgumentParser()
     parser.add_argument('--seconds',type=float)
     parser.add_argument('--no-rviz',action='store_true')
+    parser.add_argument('--rolling',action='store_true',help='Native rolling terrain preview; no global mapping')
     args=parser.parse_args()
     if args.seconds is not None and not 0<args.seconds<=3600:parser.error('invalid seconds')
     cfg=json.loads((ROOT/'config/native_lidar.json').read_text())
@@ -38,14 +39,17 @@ def main():
                 if stop or master.poll() is not None or time.monotonic()>deadline:raise RuntimeError('ROS master failed')
                 time.sleep(.2)
         bridge=spawn('bridge',[sys.executable,str(ROOT/'native/bridge.py'),'--output',str(run)])
-        if not args.no_rviz:spawn('rviz',['rviz','-d',str(ROOT/'config/native_lidar.rviz')])
+        rolling=spawn('rolling',[sys.executable,str(ROOT/'native/rolling_node.py'),'--output',str(run)]) if args.rolling else None
+        view='native_rolling.rviz' if args.rolling else 'native_lidar.rviz'
+        if not args.no_rviz:spawn('rviz',['rviz','-d',str(ROOT/'config'/view)])
         revision=subprocess.run(['git','rev-parse','HEAD'],cwd=ROOT,capture_output=True,text=True).stdout.strip()
         (run/'metadata.json').write_text(json.dumps(dict(source=str(ROOT),commit=revision,sdk=str(ROOT/'vendor/unitree_sdk2_python'),
-            settings=cfg,commands=commands,motion_commands_sent=0),indent=2))
+            settings=cfg,rolling_preview=args.rolling,commands=commands,motion_commands_sent=0),indent=2))
         print('SOURCE',ROOT,'LOG',run,flush=True)
         start=time.monotonic()
         while not stop and (args.seconds is None or time.monotonic()-start<args.seconds):
             if bridge.poll() is not None:raise RuntimeError('Bridge exited. See '+str(run/'bridge.log'))
+            if rolling is not None and rolling.poll() is not None:raise RuntimeError('Rolling map exited. See '+str(run/'rolling.log'))
             time.sleep(.2)
     except Exception:
         code=1

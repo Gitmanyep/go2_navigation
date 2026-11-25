@@ -1,0 +1,19 @@
+{
+  "period_s": 0.2,
+  "publish_period_s": 0.5,
+  "receive_timeout_s": 0.5,
+  "max_relative_lag_s": 0.4,
+  "pair_max_skew_s": 0.08,
+  "spatial_roi": {
+    "frame": "body", "front_angle_deg": 130.0,
+    "front_range_m": 4.0, "fine_range_m": 3.0,
+    "near_radius_m": 1.5, "fine_voxel_m": 0.04, "near_voxel_m": 0.10
+  },
+  "terrain": {
+    "resolution_m": 0.15, "map_size_m": 15.0,
+    "map_lease_s": 10.0, "obstacle_hold_s": 3.0,
+    "fusion_window_s": 0.7, "body_reference_height_m": 0.30,
+    "footprint_radius_m": 0.35
+  },
+  "note": "Native deskewed points already in odom: never apply Livox extrinsics. base_link axis/datum and footprint need physical acceptance. Floor plane is a static scene bootstrap, not robot calibration. Green/red costs are nominal preview only. Missing returns remain unknown. No movement publisher. Front range is adjustable independently of display."
+}
