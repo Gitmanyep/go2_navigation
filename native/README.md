@@ -44,3 +44,5 @@ Native cloud: waiting for data 表示尚未收到点云，原厂端点存在并�
 按需订阅 `/go2/native/cloud_deskewed_unfiltered` 可取得清理前的同帧副本；无订阅者时不额外发布。`/go2/native/status` 的 `details.cloud_deskewed.cleanup` 与 `cloud_deskewed_cleanup_totals` 记录前后点数、字节数、剔除数量及清理耗时。地图入口的检查仍保留。
 
 这是对原厂消息中无效记录的接入修复，不能增加真实回波，也不代表已经修复了原厂控制器内部的点云生产逻辑。不要直接删除“前10000点”；本实现检查坐标，后续原厂消除占位点后，有效数据仍能正常透传。
+
+在本仓库、已 source Noetic 的终端运行 `.venv/bin/python3 native/verify_padding.py`，可采样 5 秒并对同时间戳的清理前后点云逐字节核对；报告写入 `logs/native_zero_cleanup_acceptance_时间.json`。该检查只读 ROS 数据，不向机器狗发命令。
