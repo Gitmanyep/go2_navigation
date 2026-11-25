@@ -9,3 +9,6 @@ SDK 来源和逐文件校验在 `vendor/unitree_sdk2_python/snapshot.json`，许
 启动发送一次原厂 `rt/utlidar/switch ON` 雷达开关，然后订阅已有数据。电脑 ROS 话题在 `/go2/native/`，桥接沿用原厂时间戳和坐标帧。TF 来自原厂里程计。点云帧若没有原厂 TF，在 RViz 中先将 Fixed Frame 改成点云消息实际的 frame_id。
 
 Native cloud: waiting for data 表示尚未收到点云，原厂端点存在并不保证此刻在出数据。原厂 SLAM 建图保存、重定位和导航接口仍需单独验证。
+
+
+用 `native/check.py --seconds 8`（先 source Noetic）可以在仓库中采样并保存原厂点云、定位和近地覆盖报告。时间统计中的 header-to-wall 差值包含机器人控制侧与机载电脑的时钟偏移，只有核实时间基准后才可作为处理延迟。桥接保留原始时间戳，和其他雷达融合前需先验证同步。位置变化统计要结合采样时是否发生站起、趴下或搬动来解释。

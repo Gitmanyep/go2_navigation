@@ -26,18 +26,25 @@ def main():
     rospy.init_node('go2_native_data_check',anonymous=True)
     ages=collections.defaultdict(list)
     samples=collections.defaultdict(list)
+    source_times=collections.defaultdict(list)
+    receive_times=collections.defaultdict(list)
     poses=collections.deque(maxlen=500)
     clouds=collections.deque(maxlen=20)
     status={}
     def cloud(m,key):
         stamp=m.header.stamp.to_sec()
         ages[key].append(rospy.Time.now().to_sec()-stamp)
+        source_times[key].append(stamp)
+        receive_times[key].append(time.monotonic())
         samples[key].append(m.width*m.height)
         if key=='deskewed':
             clouds.append((stamp,pointcloud_xyz(m)))
     def odom(m):
         poses.append(m)
-        ages['odom'].append(rospy.Time.now().to_sec()-m.header.stamp.to_sec())
+        stamp=m.header.stamp.to_sec()
+        ages['odom'].append(rospy.Time.now().to_sec()-stamp)
+        source_times['odom'].append(stamp)
+        receive_times['odom'].append(time.monotonic())
     def state(m):
         status.update(json.loads(m.data))
     subs=[
@@ -51,8 +58,14 @@ def main():
     duration=time.monotonic()-start
     report=dict(duration_s=duration,source='native DDS ROS bridge',motion_commands_sent=0)
     report['topics']={key:dict(messages=len(a),receive_hz=round(len(a)/duration,2),
-        median_age_s=round(float(np.median(a)),4),p95_age_s=round(float(np.percentile(a,95)),4),
+        median_header_wall_difference_s=round(float(np.median(a)),4),
+        p95_header_wall_difference_s=round(float(np.percentile(a,95)),4),
+        source_stamp_nonincreasing=sum(dt<=0 for dt in np.diff(source_times[key])),
+        max_receive_gap_s=round(float(np.max(np.diff(receive_times[key]))),4) if len(a)>1 else None,
         median_points=float(np.median(samples[key])) if samples[key] else None) for key,a in ages.items() if a}
+    report['timestamp_alignment_verified']=False
+    report['clock_warning']='Header-to-wall differences include device clock offset and are not verified processing latency.'
+    report['header_wall_within_one_second']=all(abs(float(np.median(v)))<1 for v in ages.values() if v) and bool(ages)
     report['bridge_errors']=status.get('errors',{})
     report['last_lidar_state']=status.get('details',{}).get('lidar_state')
     relative=[]
