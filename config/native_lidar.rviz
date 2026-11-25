@@ -56,6 +56,16 @@ Visualization Manager:
       Decay Time: 0
       Color Transformer: AxisColor
       Axis: Z
+    - Class: rviz/PointCloud2
+      Name: Native mapping live cloud
+      Enabled: true
+      Topic: /go2/native/mapping_cloud
+      Queue Size: 1
+      Style: Points
+      Size (Pixels): 3
+      Decay Time: 0
+      Color Transformer: AxisColor
+      Axis: Z
     - Class: rviz/Pose
       Name: Native robot pose
       Enabled: true

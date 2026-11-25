@@ -15,3 +15,6 @@ Native cloud: waiting for data 表示尚未收到点云，原厂端点存在并�
 
 
 原厂建图服务状态可用 `./bin/go2-native-slam status` 查询，反馈原文保存在 `logs/native_slam_status_时间.json`。命令字符串参考已有客户端协议实现 https://github.com/legion1581/unitree_ui/blob/main/docs/slam.md ，以实机反馈为准。此命令只查询前端、建图、定位、导航、巡检状态和地图 ID。
+
+
+确认原厂地图可被替换并留档后，使用 `./bin/go2-native-slam mapping-start` 开始建图，`./bin/go2-native-slam mapping-stop` 停止并保存。新建地图可能覆盖机器人的单个地图槽。应先检查状态并导出现有地图，原始点云备份无法代替完整导航配置备份。实时建图点云发布到 `/go2/native/mapping_cloud`，保存后的地图发布到 `/go2/native/slam_cloud`。命令成功与否需核对原厂反馈的 success/failed 和 get_status。

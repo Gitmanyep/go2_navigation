@@ -42,6 +42,11 @@ def main():
         ('height_cloud','rt/utlidar/height_map',PointCloud2_,PointCloud2),
         ('grid_cloud','rt/utlidar/grid_map',PointCloud2_,PointCloud2),
         ('slam_cloud','rt/uslam/cloud_map',PointCloud2_,PointCloud2),
+        ('mapping_cloud','rt/uslam/frontend/cloud_world_ds',PointCloud2_,PointCloud2),
+        ('mapping_odom','rt/uslam/frontend/odom',Odometry_,Odometry),
+        ('localization_cloud','rt/uslam/localization/cloud_world',PointCloud2_,PointCloud2),
+        ('localization_odom','rt/uslam/localization/odom',Odometry_,Odometry),
+        ('global_path','rt/uslam/navigation/global_path',PointCloud2_,PointCloud2),
         ('odom','rt/utlidar/robot_odom',Odometry_,Odometry),
         ('pose','rt/utlidar/robot_pose',PoseStamped_,PoseStamped),
         ('lidar_state','rt/utlidar/lidar_state',LidarState_,String),
@@ -81,11 +86,11 @@ def main():
                 for axis in ('x','y','z'):
                     setattr(getattr(out.twist.twist,part),axis,getattr(getattr(m.twist.twist,part),axis))
             p=out.pose.pose.position
-            position[:]=[p.x,p.y,p.z]
+            if k=='odom':position[:]=[p.x,p.y,p.z]
             tf=TransformStamped(header=out.header,child_frame_id=out.child_frame_id)
             tf.transform.translation.x,tf.transform.translation.y,tf.transform.translation.z=position
             tf.transform.rotation=out.pose.pose.orientation
-            if out.child_frame_id and out.child_frame_id!=out.header.frame_id:
+            if k=='odom' and out.child_frame_id and out.child_frame_id!=out.header.frame_id:
                 tf_pub.publish(TFMessage([tf]))
             details[k]=dict(frame=out.header.frame_id,child=out.child_frame_id)
             return out

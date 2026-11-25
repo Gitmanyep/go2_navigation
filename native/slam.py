@@ -10,7 +10,7 @@ ROOT=Path(__file__).resolve().parents[1]
 
 def main():
     p=argparse.ArgumentParser()
-    p.add_argument('action',choices=['status','fetch-map'])
+    p.add_argument('action',choices=['status','fetch-map','mapping-start','mapping-stop'])
     args=p.parse_args()
     cfg=json.loads((ROOT/'config/native_lidar.json').read_text())
     sys.path.insert(0,str(ROOT/'vendor/unitree_sdk2_python'))
@@ -34,14 +34,17 @@ def main():
                 command_topic='rt/uslam/client_command',motion_commands_sent=0,commands=[],feedback=[])
     time.sleep(.8)
     queries=('frontend/get_status','mapping/get_status','localization/get_status',
-             'navigation/get_status','patrol/get_status','common/get_map_id') if args.action=='status' else ('mapping/get_cloud_map',)
+             'navigation/get_status','patrol/get_status','common/get_map_id') if args.action=='status' else {
+                 'fetch-map':('mapping/get_cloud_map',),
+                 'mapping-start':('mapping/start','mapping/get_status'),
+                 'mapping-stop':('mapping/stop','mapping/get_status','mapping/get_cloud_map')}[args.action]
     map_sample=None
     for query in queries:
         sent=time.time()
         print('QUERY',query,flush=True)
         writer.Write(String_(query))
         report['commands'].append(dict(command=query,time=sent))
-        until=time.monotonic()+(1.5 if args.action=='status' else 7.)
+        until=time.monotonic()+(7. if query in ('mapping/get_cloud_map','mapping/start','mapping/stop') else 1.5)
         while time.monotonic()<until:
             for m in map_reader.take(1):
                 if not isinstance(m,InvalidSample):
