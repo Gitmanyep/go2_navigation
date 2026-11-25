@@ -6,6 +6,8 @@ from pathlib import Path
 import sys
 import time
 ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
+from native.pointcloud import compact_registered_cloud
 
 def main():
     parser = argparse.ArgumentParser()
@@ -54,10 +56,12 @@ def main():
         ('slam_log','rt/uslam/server_log',String_,String)]
     readers={k:DataReader(participant,Topic(participant,t,d),qos) for k,t,d,_ in schema}
     pubs={k:rospy.Publisher('/go2/native/'+k,r,queue_size=1) for k,_,_,r in schema}
+    raw_deskewed=rospy.Publisher('/go2/native/cloud_deskewed_unfiltered',PointCloud2,queue_size=1)
     status=rospy.Publisher('/go2/native/status',String,queue_size=1,latch=True)
     marker_pub=rospy.Publisher('/go2/native/status_text',Marker,queue_size=1)
     tf_pub=rospy.Publisher('/tf',TFMessage,queue_size=1)
     counts,errors=Counter(),Counter()
+    cleanup_totals=Counter()
     received,details={},{}
     position=[0.,0.,0.]
     def header(h):
@@ -72,7 +76,17 @@ def main():
                 is_bigendian=m.is_bigendian,point_step=m.point_step,row_step=m.row_step,
                 data=bytes(m.data),is_dense=m.is_dense)
             out.fields=[PointField(name=f.name,offset=f.offset,datatype=f.datatype,count=f.count) for f in m.fields]
-            details[k]=dict(points=m.width*m.height,frame=m.header.frame_id)
+            if k=='cloud_deskewed':
+                if raw_deskewed.get_num_connections():raw_deskewed.publish(out)
+                started=time.monotonic()
+                layout,cleanup=compact_registered_cloud(out)
+                out=PointCloud2(header=out.header,fields=out.fields,
+                               is_bigendian=out.is_bigendian,**layout)
+                cleanup['processing_ms']=round((time.monotonic()-started)*1000,3)
+                for field in ('input_points','input_bytes','removed_zero_points','removed_nonfinite_points','output_points','output_bytes'):
+                    cleanup_totals[field]+=cleanup[field]
+                details[k]=dict(points=out.width*out.height,frame=m.header.frame_id,cleanup=cleanup)
+            else:details[k]=dict(points=m.width*m.height,frame=m.header.frame_id)
             return out
         if isinstance(m,PoseStamped_):
             out=PoseStamped(header=header(m.header));pose(out.pose,m.pose)
@@ -118,7 +132,8 @@ def main():
             if now>=next_report:
                 ages={k:round(now-v,3) for k,v in received.items()}
                 report=dict(source=str(ROOT),sdk=str(ROOT/'vendor/unitree_sdk2_python'),
-                    counts=dict(counts),receive_age_s=ages,details=details,errors=dict(errors),motion_commands_sent=0)
+                    counts=dict(counts),receive_age_s=ages,details=details,errors=dict(errors),
+                    cloud_deskewed_cleanup_totals=dict(cleanup_totals),motion_commands_sent=0)
                 status.publish(String(data=json.dumps(report)))
                 log.write(json.dumps(report)+'\n')
                 marker=Marker()
@@ -137,6 +152,7 @@ def main():
                     if age>1 and (k.endswith('cloud') or k=='cloud_deskewed'):
                         out=PointCloud2();out.header.frame_id=details.get(k,{}).get('frame',cfg['fixed_frame'])
                         pubs[k].publish(out)
+                        if k=='cloud_deskewed' and raw_deskewed.get_num_connections():raw_deskewed.publish(out)
                 print(marker.text.replace('\n',' | '),flush=True)
                 next_report=now+1
             time.sleep(.015)

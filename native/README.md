@@ -35,3 +35,12 @@ Native cloud: waiting for data 表示尚未收到点云，原厂端点存在并�
 每次 `logs/native_lidar_时间/` 记录启动提交、命令、参数、`rolling_inputs.jsonl` 和 `rolling_status.jsonl`，包括点云/位姿配对误差、处理耗时、丢帧与有效性。Ctrl+C 关闭本入口创建的进程。`--seconds 20 --no-rviz` 可做限时后台检查。
 
 原生点云中的精确零向量按无效/填充回波剔除（即便真实原点上恰好有一个点，也保守丢弃该点），不把它融合成地面；剔除数记录在状态中。较低趴姿地面初始化需连续三次拟合一致，估计不出时保持未知。
+
+
+## 原生去畸变点云的零点修复
+
+`native/bridge.py` 在发布 `/go2/native/cloud_deskewed` 前，使用 `native/pointcloud.py` 剔除 XYZ 精确零向量和 NaN/Inf。有效点的完整记录（含强度等字段）、顺序、原始时间戳、坐标帧均保留；删除点后同步更新 width、height、row_step。兼容行尾填充、大小端和 XYZ float32/float64。原始 `/go2/native/cloud` 保持透传；原厂 DDS 发布器未改动。
+
+按需订阅 `/go2/native/cloud_deskewed_unfiltered` 可取得清理前的同帧副本；无订阅者时不额外发布。`/go2/native/status` 的 `details.cloud_deskewed.cleanup` 与 `cloud_deskewed_cleanup_totals` 记录前后点数、字节数、剔除数量及清理耗时。地图入口的检查仍保留。
+
+这是对原厂消息中无效记录的接入修复，不能增加真实回波，也不代表已经修复了原厂控制器内部的点云生产逻辑。不要直接删除“前10000点”；本实现检查坐标，后续原厂消除占位点后，有效数据仍能正常透传。
