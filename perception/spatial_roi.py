@@ -17,7 +17,7 @@ class SpatialROI:
             return
         required = {'frame', 'front_angle_deg', 'front_range_m', 'near_radius_m',
                     'fine_voxel_m', 'near_voxel_m'}
-        if set(self.config) != required:
+        if set(self.config) - {'fine_range_m'} != required:
             raise ValueError('spatial_roi requires exactly: '+', '.join(sorted(required)))
         if self.config['frame'] not in ('body', 'pointlio_reference'):
             raise ValueError('unsupported spatial_roi frame')
@@ -33,6 +33,10 @@ class SpatialROI:
             raise ValueError('spatial_roi requires near_radius <= front_range <= 100m')
         if not .005 <= self.config['fine_voxel_m'] <= self.config['near_voxel_m'] <= .25:
             raise ValueError('spatial_roi requires .005 <= fine_voxel <= near_voxel <= .25m')
+
+        fine_range = self.config.get('fine_range_m', self.config['front_range_m'])
+        if type(fine_range) not in (int, float) or not 0 < fine_range <= self.config['front_range_m']:
+            raise ValueError('fine_range_m must be within front_range_m')
 
     def masks(self, points, pose):
         """Azimuth follows reference +X projected on the horizontal world plane."""
@@ -51,7 +55,9 @@ class SpatialROI:
         angle = np.abs(np.arctan2(y, x))
         fine = ((radius <= self.config['front_range_m']+1e-9) &
                 (angle <= math.radians(self.config['front_angle_deg']/2)+1e-9))
-        near = (radius <= self.config['near_radius_m']+1e-9) & ~fine
+        far = fine & (radius > self.config.get('fine_range_m', self.config['front_range_m'])+1e-9)
+        fine &= ~far
+        near = far | (radius <= self.config['near_radius_m']+1e-9) & ~fine
         return fine, near
 
     def coverage(self, points, pose):

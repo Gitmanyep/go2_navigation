@@ -12,6 +12,11 @@ def messages(snapshot):
     grid.info.origin.orientation.w=1.;grid.data=snapshot['occupancy'].ravel().tolist()
     result=dict(map=grid,elevation=point_cloud2.create_cloud_xyz32(header,snapshot['elevation_points'].tolist()),
                 obstacles=point_cloud2.create_cloud_xyz32(header,snapshot['obstacle_points'].tolist()))
+    cost = OccupancyGrid()
+    cost.header = header
+    cost.info = grid.info
+    cost.data = (snapshot['traversability'].ravel().tolist() if snapshot['valid'] else [-1]*len(grid.data))
+    result['traversability'] = cost
     if snapshot['valid'] and snapshot.get('body_pose'):
         p=snapshot['body_pose'];pose=PoseStamped();pose.header.frame_id=snapshot['frame'];pose.header.stamp=rospy.Time.from_sec(p['stamp'])
         pose.pose.position.x,pose.pose.position.y,pose.pose.position.z=p['position']
@@ -40,3 +45,45 @@ def pointcloud_xyz(msg):
     dtype=np.dtype(dict(names=['x','y','z'],formats=formats,offsets=offsets,itemsize=msg.point_step))
     view=np.ndarray((msg.height,msg.width),dtype=dtype,buffer=msg.data,strides=(msg.row_step,msg.point_step))
     return np.column_stack([view[name].ravel() for name in ('x','y','z')]).astype(float,copy=False)
+
+
+def terrain_overlay(snapshot, header):
+    """Color measured ground tiles by the cost from the same map revision."""
+    import numpy as np
+    from geometry_msgs.msg import Point
+    from std_msgs.msg import ColorRGBA
+    from visualization_msgs.msg import Marker
+
+    marker = Marker()
+    marker.header = header
+    marker.ns = 'terrain_cost_at_elevation'
+    marker.type = Marker.CUBE_LIST
+    marker.pose.orientation.w = 1.
+    marker.scale.x = marker.scale.y = snapshot['resolution'] * .96
+    marker.scale.z = .018
+    marker.color.a = 1.
+    marker.action = Marker.DELETE
+    if not snapshot['valid']:
+        return marker
+    ground = snapshot['elevation_points']
+    history = snapshot.get('historical_elevation_points', ())
+    if not len(ground) and not len(history):
+        return marker
+    cells = np.floor((ground[:, :2]-snapshot['origin'])/snapshot['resolution']).astype(int)
+    costs = snapshot['traversability'][cells[:, 1], cells[:, 0]]
+    marker.action = Marker.ADD
+    for xyz in history:
+        marker.points.append(Point(*xyz))
+        marker.colors.append(ColorRGBA(.32, .36, .41, 1.))
+    for xyz, cost in zip(ground, costs):
+        marker.points.append(Point(*xyz))
+        if cost < 0:
+            color = (.4, .4, .4)
+        elif cost == 100:
+            color = (1., 0., 0.)
+        else:
+            # Keep the highest finite cost orange so it cannot look prohibited.
+            risk = float(cost)/99.
+            color = (min(1., 2*risk), 1.-.62*max(0., 2*risk-1.), .04)
+        marker.colors.append(ColorRGBA(*color, 1.))
+    return marker
