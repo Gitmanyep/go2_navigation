@@ -12,11 +12,12 @@ def messages(snapshot):
     grid.info.origin.orientation.w=1.;grid.data=snapshot['occupancy'].ravel().tolist()
     result=dict(map=grid,elevation=point_cloud2.create_cloud_xyz32(header,snapshot['elevation_points'].tolist()),
                 obstacles=point_cloud2.create_cloud_xyz32(header,snapshot['obstacle_points'].tolist()))
-    cost = OccupancyGrid()
-    cost.header = header
-    cost.info = grid.info
-    cost.data = (snapshot['traversability'].ravel().tolist() if snapshot['valid'] else [-1]*len(grid.data))
-    result['traversability'] = cost
+    if 'traversability' in snapshot:
+        cost = OccupancyGrid()
+        cost.header = header
+        cost.info = grid.info
+        cost.data = (snapshot['traversability'].ravel().tolist() if snapshot['valid'] else [-1]*len(grid.data))
+        result['traversability'] = cost
     if snapshot['valid'] and snapshot.get('body_pose'):
         p=snapshot['body_pose'];pose=PoseStamped();pose.header.frame_id=snapshot['frame'];pose.header.stamp=rospy.Time.from_sec(p['stamp'])
         pose.pose.position.x,pose.pose.position.y,pose.pose.position.z=p['position']
