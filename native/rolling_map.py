@@ -50,8 +50,8 @@ def fit_floor(points, position):
     """Bootstrap on an observed near-horizontal surface BELOW the native pose."""
     d = points-position
     radius = np.linalg.norm(d[:, :2], axis=1)
-    a = points[(radius > .25) & (radius < 2.) & (d[:, 2] < -.08) & (d[:, 2] > -1.2)]
-    if len(a) < 100:
+    a = points[(radius > .25) & (radius < 2.) & (d[:, 2] < -.03) & (d[:, 2] > -1.2)]
+    if len(a) < 40:
         raise ValueError('bootstrap_ground_unobserved')
     a = a[::max(1, len(a)//1800)]
     rng = np.random.default_rng(11)
@@ -67,12 +67,12 @@ def fit_floor(points, position):
         count = int(np.sum(errors < .025))
         if count > best_count:
             best_count, best = count, coeff
-    if best is None or best_count < max(80, .3*len(a)):
+    if best is None or best_count < max(30, .3*len(a)):
         raise ValueError('bootstrap_plane_ambiguous')
     keep = abs(a[:, 2]-(a[:, :2]@best[:2]+best[2])) < .025
     best = np.linalg.lstsq(np.c_[a[keep, :2], np.ones(keep.sum())], a[keep, 2], rcond=None)[0]
     depth = position[2]-(position[:2]@best[:2]+best[2])
-    if not .08 < depth < 1.2 or np.linalg.norm(best[:2]) > math.tan(math.radians(10)):
+    if not .03 < depth < 1.2 or np.linalg.norm(best[:2]) > math.tan(math.radians(10)):
         raise ValueError('bootstrap_plane_invalid')
     return best
 
@@ -102,7 +102,8 @@ class NativeRollingMap:
         self.rejected = 0
         self.pair_skew = None
         self.restart_required = None
-        self.last_snapshot = None
+        self.zero_points_dropped = 0
+        self.nonfinite_points_dropped = 0
 
     def pose_input(self, stamp, position, quaternion, frame, child, mono):
         try:
@@ -133,8 +134,12 @@ class NativeRollingMap:
             points = np.asarray(points, float)
             if points.ndim != 2 or points.shape[1] != 3 or not 100 <= len(points) <= 200000:
                 raise ValueError('invalid_cloud_size')
-            points = points[np.isfinite(points).all(axis=1) & (np.abs(points) < 1e5).all(axis=1)]
-            if len(points) < 100:
+            finite = np.isfinite(points).all(axis=1) & (np.abs(points) < 1e5).all(axis=1)
+            self.nonfinite_points_dropped += int((~finite).sum())
+            zero = np.all(points == 0., axis=1)
+            self.zero_points_dropped += int(zero.sum())
+            points = points[finite & ~zero]
+            if len(points) < 30:
                 raise ValueError('insufficient_finite_points')
             lag = self.clock.observe('cloud', stamp, mono)
             pose, skew, _ = interpolate_pose(self.poses, stamp, self.settings['pair_max_skew_s'])
@@ -221,6 +226,7 @@ class NativeRollingMap:
                     body_pose=body, support_valid=support,
                     audit=dict(accepted_clouds=self.accepted, rejected_inputs=self.rejected,
                         pair_skew_s=self.pair_skew, relative_source_lag_s=dict(self.clock.lag),
+                        zero_points_dropped=self.zero_points_dropped, nonfinite_points_dropped=self.nonfinite_points_dropped,
                         timestamp_alignment_verified=False, initial_transport_latency_verified=False,
                         body_calibration_verified=False, traversability_suitable_for_control=False,
                         floor_plane=self.floor.tolist() if self.floor is not None else None,

@@ -98,6 +98,15 @@ class NativeRollingTests(unittest.TestCase):
         self.assertTrue(np.isin(retained, seen).all())
         self.assertTrue(np.isnan(self.engine.map.elevation).any())
 
+    def test_zero_padding_never_creates_ground_at_world_origin(self):
+        xyz = np.r_[self.floor+np.array([0., 0., -.15]), np.zeros((9000, 3))]
+        for i in range(12):
+            self.sample(i, z=.1, cloud=xyz)
+        snap = self.engine.snapshot(12.2)
+        self.assertTrue(snap['valid'], snap['reason'])
+        self.assertGreater(snap['audit']['zero_points_dropped'], 9000)
+        self.assertTrue(np.allclose(snap['elevation_points'][:, 2], -.15))
+
     def test_ground_bootstrap_requires_real_support(self):
         with self.assertRaises(ValueError):
             fit_floor(self.floor+np.array([0, 0, .5]), np.array([0, 0, .25]))

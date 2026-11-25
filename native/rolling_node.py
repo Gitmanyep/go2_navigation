@@ -100,7 +100,7 @@ def main():
             if snap:
                 snap = dict(snap)
                 if error or mono > snap['valid_until_mono'] or mono-snap['built_mono'] > .4:
-                    snap.update(valid=False, reason=error or 'native_input_or_worker_timeout',
+                    snap.update(valid=False, reason=error or ('native_input_or_worker_timeout' if snap['valid'] else snap['reason']),
                         occupancy=np.full_like(snap['occupancy'], -1), traversability=np.full_like(snap['traversability'], -1),
                         elevation_points=np.empty((0, 3)), obstacle_points=np.empty((0, 3)))
                 status = dict(snap['audit'], valid=snap['valid'], reason=snap['reason'], support_valid=snap['support_valid'],
