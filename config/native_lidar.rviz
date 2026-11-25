@@ -18,7 +18,7 @@ Visualization Manager:
       Marker Topic: /go2/native/status_text
     - Class: rviz/PointCloud2
       Name: Native raw cloud
-      Enabled: true
+      Enabled: false
       Topic: /go2/native/cloud
       Queue Size: 1
       Style: Points
@@ -28,7 +28,7 @@ Visualization Manager:
       Axis: Z
     - Class: rviz/PointCloud2
       Name: Native deskewed cloud
-      Enabled: false
+      Enabled: true
       Topic: /go2/native/cloud_deskewed
       Queue Size: 1
       Style: Points
