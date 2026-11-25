@@ -60,7 +60,7 @@ def main():
     report['topics']={key:dict(messages=len(a),receive_hz=round(len(a)/duration,2),
         median_header_wall_difference_s=round(float(np.median(a)),4),
         p95_header_wall_difference_s=round(float(np.percentile(a,95)),4),
-        source_stamp_nonincreasing=sum(dt<=0 for dt in np.diff(source_times[key])),
+        source_stamp_nonincreasing=int(np.sum(np.diff(source_times[key])<=0)),
         max_receive_gap_s=round(float(np.max(np.diff(receive_times[key]))),4) if len(a)>1 else None,
         median_points=float(np.median(samples[key])) if samples[key] else None) for key,a in ages.items() if a}
     report['timestamp_alignment_verified']=False
