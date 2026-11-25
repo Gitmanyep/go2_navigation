@@ -107,6 +107,12 @@ class NativeRollingTests(unittest.TestCase):
         self.assertGreater(snap['audit']['zero_points_dropped'], 9000)
         self.assertTrue(np.allclose(snap['elevation_points'][:, 2], -.15))
 
+    def test_already_cleaned_small_cloud_uses_same_valid_point_threshold(self):
+        self.mapped()
+        near = self.floor[np.linalg.norm(self.floor[:, :2], axis=1) < 1.2][:64]
+        self.assertEqual(len(near), 64)
+        self.assertTrue(self.sample(12, cloud=near), self.engine.errors['cloud'])
+
     def test_ground_bootstrap_requires_real_support(self):
         with self.assertRaises(ValueError):
             fit_floor(self.floor+np.array([0, 0, .5]), np.array([0, 0, .25]))

@@ -132,7 +132,7 @@ class NativeRollingMap:
             if frame != 'odom':
                 raise ValueError('native_cloud_frame_mismatch')
             points = np.asarray(points, float)
-            if points.ndim != 2 or points.shape[1] != 3 or not 100 <= len(points) <= 200000:
+            if points.ndim != 2 or points.shape[1] != 3 or not 30 <= len(points) <= 200000:
                 raise ValueError('invalid_cloud_size')
             finite = np.isfinite(points).all(axis=1) & (np.abs(points) < 1e5).all(axis=1)
             self.nonfinite_points_dropped += int((~finite).sum())
