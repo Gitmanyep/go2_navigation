@@ -92,6 +92,7 @@ def main():
         if isinstance(m,LidarState_):
             details[k]={f:getattr(m,f) for f in ('firmware_version','software_version','error_state','cloud_frequency','cloud_size','imu_frequency')}
             return String(data=json.dumps(details[k]))
+        details[k]=m.data[:2500]
         return String(data=m.data[:10000])
     if cfg['radar_on']:
         switch=ChannelPublisher('rt/utlidar/switch',String_);switch.Init()

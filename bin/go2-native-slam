@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+GO2_NATIVE_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+GO2_NATIVE_PYTHON="$GO2_NATIVE_ROOT/.venv/bin/python3"
+if [[ ! -x "$GO2_NATIVE_PYTHON" ]]; then GO2_NATIVE_PYTHON=/usr/bin/python3; fi
+GO2_DDS_LIB="$(/usr/bin/python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["cyclonedds_home"])' "$GO2_NATIVE_ROOT/config/native_lidar.json")"
+export CYCLONEDDS_HOME="$GO2_DDS_LIB"
+export LD_LIBRARY_PATH="$GO2_DDS_LIB/lib"
+export PYTHONDONTWRITEBYTECODE=1
+exec "$GO2_NATIVE_PYTHON" -u "$GO2_NATIVE_ROOT/native/slam.py" "$@"

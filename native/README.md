@@ -12,3 +12,6 @@ Native cloud: waiting for data 表示尚未收到点云，原厂端点存在并�
 
 
 用 `native/check.py --seconds 8`（先 source Noetic）可以在仓库中采样并保存原厂点云、定位和近地覆盖报告。时间统计中的 header-to-wall 差值包含机器人控制侧与机载电脑的时钟偏移，只有核实时间基准后才可作为处理延迟。桥接保留原始时间戳，和其他雷达融合前需先验证同步。位置变化统计要结合采样时是否发生站起、趴下或搬动来解释。
+
+
+原厂建图服务状态可用 `./bin/go2-native-slam status` 查询，反馈原文保存在 `logs/native_slam_status_时间.json`。命令字符串参考已有客户端协议实现 https://github.com/legion1581/unitree_ui/blob/main/docs/slam.md ，以实机反馈为准。此命令只查询前端、建图、定位、导航、巡检状态和地图 ID。
