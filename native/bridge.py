@@ -28,7 +28,7 @@ def main():
     from unitree_sdk2py.idl.nav_msgs.msg.dds_ import Odometry_
     from unitree_sdk2py.idl.geometry_msgs.msg.dds_ import PoseStamped_
     from unitree_sdk2py.idl.std_msgs.msg.dds_ import String_
-    from unitree_sdk2py.idl.unitree_go.msg.dds_ import LidarState_
+    from native.state_message import LidarState_
     from cyclonedds.internal import InvalidSample
     from cyclonedds.domain import DomainParticipant
     from cyclonedds.sub import DataReader
@@ -109,7 +109,8 @@ def main():
             details[k]=dict(frame=out.header.frame_id,child=out.child_frame_id)
             return out
         if isinstance(m,LidarState_):
-            details[k]={f:getattr(m,f) for f in ('firmware_version','software_version','error_state','cloud_frequency','cloud_size','imu_frequency')}
+            details[k]={f:getattr(m,f) for f in ('firmware_version','software_version','sdk_version','error_state','dirty_percentage',
+                'cloud_frequency','cloud_packet_loss_rate','cloud_size','cloud_scan_num','imu_frequency','imu_packet_loss_rate')}
             return String(data=json.dumps(details[k]))
         details[k]=m.data[:2500]
         return String(data=m.data[:10000])

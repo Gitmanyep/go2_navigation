@@ -46,3 +46,10 @@ Native cloud: waiting for data 表示尚未收到点云，原厂端点存在并�
 这是对原厂消息中无效记录的接入修复，不能增加真实回波，也不代表已经修复了原厂控制器内部的点云生产逻辑。不要直接删除“前10000点”；本实现检查坐标，后续原厂消除占位点后，有效数据仍能正常透传。
 
 在本仓库、已 source Noetic 的终端运行 `.venv/bin/python3 native/verify_padding.py`，可采样 5 秒并对同时间戳的清理前后点云逐字节核对；报告写入 `logs/native_zero_cleanup_acceptance_时间.json`。该检查只读 ROS 数据，不向机器狗发命令。
+
+
+## 雷达状态消息兼容性
+
+当前原生发布器使用含 `dirty_percentage` 的18字段 LidarState。保存的原有 Python SDK 定义缺少此字段，无法与当前发布器正常匹配；因此桥接使用本仓库 `native/state_message.py`，按机载 C++ SDK 定义匹配，不修改 `vendor/` 快照或原有 SDK。状态中可查看固件、SDK、错误码、污染指标和采样统计。不同固件若改变消息定义，需要重新核对，不把“端点存在”当成已收到有效状态。
+
+`dirty_percentage` 与消息里固定10000个零点是不同指标；其升高可能与窗口污染、遮挡及近距离安装环境有关，需结合实际安装检查，不能只凭数值认定镜片脏了。
