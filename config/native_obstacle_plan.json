@@ -18,7 +18,7 @@
   "planning_budget_s": 0.055,
   "goal_distance_m": 4.0,
   "candidate_max_speed_mps": 0.8,
-  "candidate_max_yaw_rps": 1.0,
+  "candidate_max_yaw_rps": 2.0,
   "direction_timeout_s": 0.5,
   "note": "Preview only. Operator declares start safe. Fixed-current-heading 0.67x0.36m rectangle; native base-to-envelope center unverified. Latest occupied snapshot replaces old obstacles; cells missing current observations remain unknown. No motor output. Registered odom voxels are not rotated again for inverted lidar.",
   "preview_assumed_self_radius_m": 0.0,

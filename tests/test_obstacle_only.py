@@ -202,7 +202,7 @@ class ObstacleOnlyTests(unittest.TestCase):
         settings.update(floor_z_m=0.,planning_budget_s=.3)
         self.assertEqual(settings['goal_distance_m'],4.)
         self.assertEqual(settings['candidate_max_speed_mps'],.8)
-        self.assertEqual(settings['candidate_max_yaw_rps'],1.)
+        self.assertEqual(settings['candidate_max_yaw_rps'],2.)
         # Fully observed flat fixture; missing cells must not be silently filled.
         floor=np.array([[x,y,0.] for x in np.arange(-5.,5.01,.1)
                         for y in np.arange(-5.,5.01,.1)])
@@ -215,7 +215,7 @@ class ObstacleOnlyTests(unittest.TestCase):
             self.assertAlmostEqual(np.linalg.norm(snap['goal']),4.)
             self.assertTrue(snap['path'],snap['reason'])
             self.assertLessEqual(abs(snap['candidate'][0]),.8)
-            self.assertLessEqual(abs(snap['candidate'][1]),1.)
+            self.assertLessEqual(abs(snap['candidate'][1]),2.)
             self.assertEqual(snap['motion_commands_sent'],0)
             self.assertFalse(snap['traversability_suitable_for_control'])
 
