@@ -119,6 +119,17 @@ class ObstacleOnlyTests(unittest.TestCase):
         self.pose(1000.2,10.2);self.cloud([[1.,0.,.4]],1000.2,10.2,size=.05)
         self.assertEqual(self.e.voxel_size,.2)
 
+    def test_obstacle_and_clearance_are_distinguished(self):
+        snap=self.ready([[1.,0.,.4]])
+        self.assertGreater((snap['grid']==100).sum(),0)
+        self.assertGreater((snap['grid']==50).sum(),0)
+        self.assertTrue(snap['path'])
+
+    def test_motion_after_floor_selection_locks_preview(self):
+        self.ready();self.assertFalse(self.pose(1000.1,10.1,(.3,0,.3)))
+        snap=self.e.snapshot(10.1)
+        self.assertFalse(snap['valid']);self.assertEqual(snap['candidate'],[0.,0.])
+
     def test_astar_does_not_cut_diagonal_corners(self):
         blocked=np.array([[False,True],[True,False]])
         route,reason=astar(blocked,(0,0),(1,1),.1)

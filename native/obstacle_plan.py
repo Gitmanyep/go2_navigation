@@ -98,6 +98,7 @@ class ObstaclePreview:
         self.direction = None
         self.source_stamp = 0.
         self.obstacles = set()
+        self.floor_pose = None
         self.last_error = None
         self.restart_required = False
         self.voxel_size = self.s['voxel_size_m']
@@ -111,6 +112,7 @@ class ObstaclePreview:
         if xy is None or np.asarray(xy).shape != (2,) or not np.isfinite(xy).all():
             raise ValueError('waiting_for_odometry_to_declare_test_area')
         self.floor_z = float(z)
+        self.floor_pose = self.pose['position'].copy() if self.pose else None
         self.area_centre = np.asarray(xy, float).copy()
         self.goal = self.direction = None
         self.obstacles.clear()
@@ -146,9 +148,14 @@ class ObstaclePreview:
                 self.restart_required = True
                 self.obstacles.clear()
                 raise ValueError('pose_jump_restart_required')
+            if self.floor_pose is not None and np.linalg.norm(p-self.floor_pose) > .25:
+                self.restart_required = True
+                self.obstacles.clear()
+                raise ValueError('test_area_pose_changed_reset_required')
             self.pose = dict(stamp=stamp, position=p.copy(), quaternion=q.copy())
             if self.floor_z is not None and self.area_centre is None:
                 self.area_centre = p[:2].copy()
+                self.floor_pose = p.copy()
             return True
         except ValueError as exc:
             self.pose_clock.invalidate(str(exc)); self.last_error = str(exc)
@@ -226,9 +233,9 @@ class ObstaclePreview:
         clearance = distance_transform_edt(np.pad(~occupied_or_outside,1))[1:-1,1:-1]*res
         margin = self.s['robot_radius_m']+self.s['collision_margin_m']+(self.voxel_size+res)*math.sqrt(.5)
         blocked = clearance <= margin
-        grid[inside] = np.where(blocked[inside],100,0).astype(np.int8)
+        grid[inside] = np.where(obstacle[inside],100,np.where(blocked[inside],50,0)).astype(np.int8)
         out.update(valid=True, reason='waiting_for_goal', grid=grid,
-                   assumed_usable_cells=int(np.sum(grid==0)), blocked_cells=int(np.sum(grid==100)),
+                   assumed_usable_cells=int(np.sum(grid==0)), blocked_cells=int(np.sum(grid>=50)), observed_obstacle_cells=int(np.sum(grid==100)), inflated_cells=int(np.sum(grid==50)),
                    footprint_inflation_m=margin)
         target = self.goal
         if self.direction is not None:

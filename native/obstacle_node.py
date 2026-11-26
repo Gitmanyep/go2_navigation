@@ -122,7 +122,7 @@ def main():
                 for cy,cx in zip(y,x):
                     xy=snap['origin']+(np.array([cx,cy])+.5)*snap['resolution']
                     marker.points.append(Point(xy[0],xy[1],snap['floor_z']+engine.voxel_size*.5+.01))
-                    marker.colors.append(ColorRGBA(1.,.05,.05,1.) if snap['grid'][cy,cx]==100 else ColorRGBA(.20,.30,.42,.55))
+                    marker.colors.append(ColorRGBA(1.,.05,.05,1.) if snap['grid'][cy,cx]==100 else ColorRGBA(1.,.55,.05,.55) if snap['grid'][cy,cx]==50 else ColorRGBA(.20,.30,.42,.15))
             pubs['map'].publish(marker)
             label=Marker(header=header,ns='obstacle_preview_label',type=Marker.TEXT_VIEW_FACING)
             label.pose.orientation.w=1.;label.scale.z=.12;label.color.r=label.color.g=label.color.a=1.
