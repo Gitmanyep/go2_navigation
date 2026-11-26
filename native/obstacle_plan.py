@@ -308,6 +308,13 @@ class ObstaclePreview:
                 observed[cc[ok,1],cc[ok,0]]=True
             grid[inside & ~observed & ~blocked]=-1
         if self.s.get('start_assumed_safe',False):
+            if self.s.get('footprint_shape')=='rectangle':
+                yaw=Rotation.from_quat(self.pose['quaternion']).as_euler('xyz')[2]
+                delta=xy-pos[:2]
+                bx=delta[:,:,0]*math.cos(yaw)+delta[:,:,1]*math.sin(yaw)
+                by=-delta[:,:,0]*math.sin(yaw)+delta[:,:,1]*math.cos(yaw)
+                declared=(abs(bx)<=self.s['robot_length_m']/2)&(abs(by)<=self.s['robot_width_m']/2)
+                grid[declared & (grid==-1)]=0
             start_cell=np.floor((pos[:2]-origin)/res).astype(int)
             if (start_cell>=0).all() and (start_cell<n).all():grid[start_cell[1],start_cell[0]]=0
         out.update(valid=True, reason='waiting_for_goal', grid=grid,

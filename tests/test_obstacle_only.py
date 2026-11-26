@@ -188,6 +188,15 @@ class ObstacleOnlyTests(unittest.TestCase):
             self.assertEqual(d['frontier_counts'][{-1:'unknown',50:'clearance',100:'obstacle'}[value]],5)
             self.assertEqual(d[name]['route_exists'],value!=100)
 
+    def test_operator_safe_start_covers_unknown_under_body_only(self):
+        self.s.update(footprint_shape='rectangle',start_assumed_safe=True,use_latest_voxel_snapshot=True)
+        self.e=ObstaclePreview(self.s);self.pose();self.cloud([])
+        snap=self.e.snapshot(10.)
+        yy,xx=np.indices(snap['grid'].shape);xy=snap['origin']+np.stack((xx+.5,yy+.5),axis=-1)*snap['resolution']
+        body=(abs(xy[:,:,0])<=.335)&(abs(xy[:,:,1])<=.18)
+        self.assertTrue((snap['grid'][body]==0).all())
+        self.assertEqual(snap['grid'][40,48],-1)
+
     def test_astar_does_not_cut_diagonal_corners(self):
         blocked=np.array([[False,True],[True,False]])
         route,reason=astar(blocked,(0,0),(1,1),.1)
