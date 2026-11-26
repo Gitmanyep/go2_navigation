@@ -8,7 +8,7 @@ import heapq
 import math
 import time
 import numpy as np
-from scipy.ndimage import distance_transform_edt, binary_dilation
+from scipy.ndimage import distance_transform_edt, binary_dilation, label
 from scipy.spatial.transform import Rotation
 
 class StreamLease:
@@ -69,30 +69,25 @@ def astar(blocked, start, goal, budget_s):
 
 
 def reachable_direction_goal(grid, start, origin, resolution, position, axis, horizon, budget_s):
-    """Pick a reachable observed cell near the desired direction; never relax unknown."""
-    h,w=grid.shape
-    def free(c):return 0<=c[0]<w and 0<=c[1]<h and grid[c[1],c[0]]==0
-    if not free(start):return [],None,'start_in_collision_or_outside_test_area'
-    deadline=time.monotonic()+budget_s
-    queue=deque([start]);parent={start:None};best=None;best_score=None
-    while queue:
-        if time.monotonic()>deadline:return [],None,'planning_timeout'
-        c=queue.popleft()
-        point=origin+(np.asarray(c)+.5)*resolution
-        delta=point-position;progress=float(np.dot(delta,axis))
-        lateral=abs(float(delta[0]*axis[1]-delta[1]*axis[0]))
-        if .3<=progress<=horizon and np.linalg.norm(delta)<=horizon and lateral<=max(.5,progress*.5):
-            score=(progress-lateral,progress,-lateral)
-            if best_score is None or score>best_score:best,best_score=c,score
-        x,y=c
-        for dx,dy in ((1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)):
-            n=(x+dx,y+dy)
-            if n not in parent and free(n) and free((x+dx,y)) and free((x,y+dy)):
-                parent[n]=c;queue.append(n)
-    if best is None:return [],None,'no_reachable_forward_goal'
-    route=[];c=best
-    while c is not None:route.append(c);c=parent[c]
-    return route[::-1],best,'obstacle_only_path_preview'
+    """Pick an observed forward cell in the start's four-connected free region."""
+    h,w=grid.shape;x,y=start
+    if not (0<=x<w and 0<=y<h and grid[y,x]==0):
+        return [],None,'start_in_collision_or_outside_test_area'
+    started=time.monotonic()
+    components,_=label(grid==0)
+    yy,xx=np.nonzero(components==components[y,x])
+    dx=origin[0]+(xx+.5)*resolution-position[0]
+    dy=origin[1]+(yy+.5)*resolution-position[1]
+    progress=dx*axis[0]+dy*axis[1]
+    lateral=np.abs(dx*axis[1]-dy*axis[0])
+    mask=(progress>=.3)&(progress<=horizon)&(np.hypot(dx,dy)<=horizon)&(lateral<=np.maximum(.5,progress*.5))
+    if not np.any(mask):return [],None,'no_reachable_forward_goal'
+    indices=np.flatnonzero(mask);i=indices[np.argmax(progress[mask]-lateral[mask])]
+    goal=(int(xx[i]),int(yy[i]))
+    remaining=budget_s-(time.monotonic()-started)
+    if remaining<=0:return [],None,'planning_timeout'
+    route,reason=astar(grid!=0,start,goal,remaining)
+    return route,goal if route else None,reason
 
 
 def route_diagnostics(grid, start, goal, origin, resolution):
