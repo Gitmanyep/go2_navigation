@@ -11,6 +11,8 @@ class ObstacleOnlyTests(unittest.TestCase):
     def setUp(self):
         self.s=json.loads((ROOT/'config/native_obstacle_plan.json').read_text())
         self.s['floor_z_m']=0.
+        self.s['floor_exclusion_m']=.08
+        self.s['preview_assumed_self_radius_m']=0.
         self.s['planning_budget_s']=.3
         self.e=ObstaclePreview(self.s)
     def pose(self, stamp=1000., mono=10., position=(0.,0.,.3)):
@@ -138,6 +140,15 @@ class ObstacleOnlyTests(unittest.TestCase):
         self.pose(1000.1,10.1)
         self.assertTrue(self.cloud([[1.,0.,.4]],1000.1,10.1,size=.05))
         self.assertGreater(len(self.e.obstacles),0)
+
+    def test_assumed_self_mask_is_explicit_and_does_not_authorize_control(self):
+        self.s['preview_assumed_self_radius_m']=.5
+        self.e=ObstaclePreview(self.s)
+        s=self.ready([[.34,0.,.4],[1.1,0.,.4]])
+        self.assertEqual(s['assumed_self_mask_radius_m'],.5)
+        self.assertFalse(s['traversability_suitable_for_control'])
+        self.assertEqual(len(self.e.obstacles),1)
+        self.assertGreater(max(abs(p[1]) for p in s['path']),.5)
 
     def test_astar_does_not_cut_diagonal_corners(self):
         blocked=np.array([[False,True],[True,False]])

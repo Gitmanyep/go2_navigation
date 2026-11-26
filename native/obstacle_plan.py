@@ -192,6 +192,13 @@ class ObstaclePreview:
             self.filtered_floor_points = int(np.sum(a[:,2]+half < low))
             self.out_of_envelope_points = int(np.sum(a[:,2]-half > high))
             use = (a[:,2]+half >= low) & (a[:,2]-half <= high)
+            # This is a human-declared empty footprint in a flat, static demo.
+            # It does not prove that the masked volume is collision-free.
+            mask_radius = self.s.get('preview_assumed_self_radius_m', 0.)
+            if not math.isfinite(mask_radius) or not 0 <= mask_radius <= .6:
+                raise ValueError('invalid_preview_self_mask')
+            if self.pose is not None and mask_radius:
+                use &= np.linalg.norm(a[:,:2]-self.pose['position'][:2],axis=1) > mask_radius
             use &= np.linalg.norm(a[:,:2]-self.area_centre, axis=1) <= self.s['preview_radius_m']+self.s['robot_radius_m']+self.voxel_size
             cells = np.floor(a[use,:2]/self.s['grid_resolution_m']).astype(int)
             # A missing occupied voxel does not prove the volume was cleared.
@@ -215,6 +222,7 @@ class ObstaclePreview:
                    path=[], candidate=[0.,0.], goal=None, floor_z=self.floor_z,
                    pose=self.pose, obstacle_cells=len(self.obstacles), assumption='flat_test_area_unoccupied_is_assumed_usable',
                    terrain_analysis_enabled=False, free_space_verified=False, traversability_suitable_for_control=False,
+                   assumed_self_mask_radius_m=self.s.get('preview_assumed_self_radius_m',0.),
                    motion_commands_sent=0)
         if self.restart_required or self.voxel_clock.restart_required or self.pose_clock.restart_required:
             out['reason'] = 'source_or_pose_jump_restart_required'; return out
