@@ -110,7 +110,7 @@ class ObstacleOnlyTests(unittest.TestCase):
 
     def test_direction_transform_and_focus_clear_expiry(self):
         self.ready();self.e.set_direction([0.,1.,0.],10.)
-        s=self.e.snapshot(10.);self.assertAlmostEqual(s['goal'][1],2.)
+        s=self.e.snapshot(10.);self.assertAlmostEqual(s['goal'][1],self.s['goal_distance_m'])
         self.assertEqual(self.e.snapshot(10.6)['candidate'],[0.,0.])
         self.e.set_direction([0,0,0],10.2);self.assertIsNone(self.e.direction)
         with self.assertRaises(ValueError):self.e.set_direction([1,0,1],10.2)
@@ -196,6 +196,44 @@ class ObstacleOnlyTests(unittest.TestCase):
         body=(abs(xy[:,:,0])<=.335)&(abs(xy[:,:,1])<=.18)
         self.assertTrue((snap['grid'][body]==0).all())
         self.assertEqual(snap['grid'][40,48],-1)
+
+    def test_four_metre_direction_horizon_all_eight_directions(self):
+        settings=json.loads((ROOT/'config/native_obstacle_plan.json').read_text())
+        settings.update(floor_z_m=0.,planning_budget_s=.3)
+        self.assertEqual(settings['goal_distance_m'],4.)
+        self.assertEqual(settings['candidate_max_speed_mps'],.8)
+        self.assertEqual(settings['candidate_max_yaw_rps'],1.)
+        # Fully observed flat fixture; missing cells must not be silently filled.
+        floor=np.array([[x,y,0.] for x in np.arange(-5.,5.01,.1)
+                        for y in np.arange(-5.,5.01,.1)])
+        for x,y in ((1,0),(1,1),(0,1),(-1,1),(-1,0),(-1,-1),(0,-1),(1,-1)):
+            e=ObstaclePreview(settings)
+            e.pose_input(1000,[0,0,.3],[0,0,0,1],'odom','base_link',10)
+            e.cloud_input(1000,floor,'odom',10,.05)
+            e.set_direction([x,y,0],10)
+            snap=e.snapshot(10)
+            self.assertAlmostEqual(np.linalg.norm(snap['goal']),4.)
+            self.assertTrue(snap['path'],snap['reason'])
+            self.assertLessEqual(abs(snap['candidate'][0]),.8)
+            self.assertLessEqual(abs(snap['candidate'][1]),1.)
+            self.assertEqual(snap['motion_commands_sent'],0)
+            self.assertFalse(snap['traversability_suitable_for_control'])
+
+    def test_four_metre_goal_uses_body_yaw_and_unknown_goal_blocks(self):
+        self.s.update(footprint_shape='rectangle',start_assumed_safe=True,use_latest_voxel_snapshot=True)
+        e=ObstaclePreview(self.s)
+        e.pose_input(1000,[.2,-.3,.3],[0,0,2**-.5,2**-.5],'odom','base_link',10)
+        e.cloud_input(1000,np.empty((0,3)),'odom',10,.05)
+        e.set_direction([1,0,0],10)
+        snap=e.snapshot(10)
+        np.testing.assert_allclose(snap['goal'],[.2,3.7],atol=1e-8)
+        self.assertFalse(snap['path']);self.assertEqual(snap['candidate'],[0.,0.])
+        self.assertEqual(snap['route_diagnostic']['goal_type'],'unknown')
+
+    def test_direction_horizon_cannot_touch_inflated_map_boundary(self):
+        self.s.update(goal_distance_m=4.,preview_radius_m=4.)
+        with self.assertRaisesRegex(ValueError,'direction_horizon_exceeds_usable_window'):
+            ObstaclePreview(self.s)
 
     def test_astar_does_not_cut_diagonal_corners(self):
         blocked=np.array([[False,True],[True,False]])

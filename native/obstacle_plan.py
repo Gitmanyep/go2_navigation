@@ -113,6 +113,12 @@ def settings_check(s):
         for k in ('robot_length_m','robot_width_m'):
             if type(s.get(k)) not in (int,float) or not math.isfinite(s[k]) or not 0<s[k]<2:
                 raise ValueError('invalid_rectangle_geometry:'+k)
+    # Keep the direction target inside the usable window, away from boundary inflation.
+    boundary_margin=s['collision_margin_m']+(s['voxel_size_m']+s['grid_resolution_m'])*math.sqrt(.5)
+    body_reach=(math.hypot(s['robot_length_m']/2,s['robot_width_m']/2)
+                if s.get('footprint_shape')=='rectangle' else s['robot_radius_m'])
+    if s['goal_distance_m']+body_reach+boundary_margin+s['grid_resolution_m'] >= s['preview_radius_m']:
+        raise ValueError('direction_horizon_exceeds_usable_window')
     if s['fixed_frame'] != 'odom' or s['body_frame'] != 'base_link':
         raise ValueError('native_frame_contract_required')
     if s.get('floor_z_m') is not None and not math.isfinite(s['floor_z_m']):
@@ -266,7 +272,9 @@ class ObstaclePreview:
                    terrain_analysis_enabled=False, free_space_verified=False, traversability_suitable_for_control=False,
                    assumed_self_mask_radius_m=self.s.get('preview_assumed_self_radius_m',0.),
                    motion_commands_sent=0, start_assumed_safe=self.s.get('start_assumed_safe',False),
-                   footprint_shape=self.s.get('footprint_shape','circle'), body_reference_verified=False)
+                   footprint_shape=self.s.get('footprint_shape','circle'), body_reference_verified=False,
+                   goal_distance_m=self.s['goal_distance_m'], map_radius_m=radius,
+                   candidate_limits=dict(speed_mps=self.s['candidate_max_speed_mps'],yaw_rps=self.s['candidate_max_yaw_rps']))
         if self.restart_required or self.voxel_clock.restart_required or self.pose_clock.restart_required:
             out['reason'] = 'source_or_pose_jump_restart_required'; return out
         if not self.pose_clock.valid(mono) or not self.voxel_clock.valid(mono):
