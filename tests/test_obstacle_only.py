@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import unittest
 import numpy as np
-from native.obstacle_plan import ObstaclePreview, astar
+from native.obstacle_plan import ObstaclePreview, astar, route_diagnostics
 ROOT=Path(__file__).resolve().parents[1]
 
 
@@ -179,6 +179,14 @@ class ObstacleOnlyTests(unittest.TestCase):
             self.e.set_goal([0,2.] if rotated else [2.,0],'odom')
             result=self.e.snapshot(10)
             self.assertTrue(result['path'],result['reason'])
+
+    def test_failure_diagnostic_distinguishes_unknown_and_clearance(self):
+        for value,name in [(-1,'allow_unknown'),(50,'allow_clearance'),(100,'obstacles_only')]:
+            g=np.zeros((5,5),np.int8);g[:,2]=value
+            d=route_diagnostics(g,(0,2),(4,2),np.zeros(2),.1)
+            self.assertEqual(d['reachable_cells'],10)
+            self.assertEqual(d['frontier_counts'][{-1:'unknown',50:'clearance',100:'obstacle'}[value]],5)
+            self.assertEqual(d[name]['route_exists'],value!=100)
 
     def test_astar_does_not_cut_diagonal_corners(self):
         blocked=np.array([[False,True],[True,False]])

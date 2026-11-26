@@ -68,6 +68,36 @@ def astar(blocked, start, goal, budget_s):
     return [], 'no_collision_free_route'
 
 
+def route_diagnostics(grid, start, goal, origin, resolution):
+    """Explain a failed search; relaxed searches are diagnostic only, never commands."""
+    h,w=grid.shape
+    def inside(c):return 0<=c[0]<w and 0<=c[1]<h
+    names={-1:'unknown',0:'assumed_usable',50:'clearance',100:'obstacle'}
+    def kind(c):return names.get(int(grid[c[1],c[0]]),'invalid') if inside(c) else 'outside'
+    reachable=set();todo=deque([start] if inside(start) and grid[start[1],start[0]]==0 else [])
+    frontier={};nearest=None
+    while todo:
+        c=todo.popleft()
+        if c in reachable:continue
+        reachable.add(c)
+        if nearest is None or math.dist(c,goal)<math.dist(nearest,goal):nearest=c
+        for dx,dy in ((1,0),(-1,0),(0,1),(0,-1)):
+            n=(c[0]+dx,c[1]+dy)
+            if inside(n) and grid[n[1],n[0]]==0:
+                if n not in reachable:todo.append(n)
+            else:frontier[n]=kind(n)
+    counts={name:sum(v==name for v in frontier.values()) for name in ('unknown','clearance','obstacle','outside')}
+    samples=sorted(frontier,key=lambda c:math.dist(c,goal))[:8]
+    result=dict(start_type=kind(start),goal_type=kind(goal),reachable_cells=len(reachable),frontier_counts=counts,
+        nearest_reachable_to_goal_m=math.dist(nearest,goal)*resolution if nearest is not None else None,
+        blocking_samples=[dict(world_xy=(origin+(np.asarray(c)+.5)*resolution).tolist(),kind=frontier[c]) for c in samples])
+    if inside(start) and inside(goal):
+        for name,mask in [('allow_unknown', (grid!=0)&(grid!=-1)),('allow_clearance',(grid!=0)&(grid!=50)),('obstacles_only',grid==100)]:
+            path,reason=astar(mask,start,goal,.08)
+            result[name]=dict(route_exists=bool(path),reason=reason)
+    return result
+
+
 def settings_check(s):
     for k in ('grid_resolution_m', 'preview_radius_m', 'robot_radius_m', 'collision_margin_m',
               'robot_envelope_height_m', 'floor_exclusion_m', 'voxel_size_m', 'input_timeout_s',
@@ -309,6 +339,7 @@ class ObstaclePreview:
                 out['candidate'] = [self.s['candidate_max_speed_mps']*math.cos(error) if abs(error)<.7 else 0.,
                                     float(np.clip(1.6*error,-self.s['candidate_max_yaw_rps'],self.s['candidate_max_yaw_rps']))]
         out['reason'] = reason
+        if not route:out['route_diagnostic']=route_diagnostics(grid,start,goal,origin,res)
         self.compute_samples.append((time.monotonic()-started)*1000)
         out['planning_p95_ms'] = float(np.quantile(self.compute_samples,.95))
         return out
