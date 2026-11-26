@@ -165,6 +165,21 @@ class ObstacleOnlyTests(unittest.TestCase):
         self.assertTrue(self.pose(1000.2,10.2,(.3,0,.3)))
         self.assertFalse(self.e.snapshot(10.2)['valid'])
 
+    def test_rectangle_fits_corridor_and_rotates_with_body(self):
+        for rotated in (False,True):
+            self.setUp()
+            self.s.update(footprint_shape='rectangle',start_assumed_safe=True,use_latest_voxel_snapshot=True)
+            self.e=ObstaclePreview(self.s)
+            q=[0,0,2**-.5,2**-.5] if rotated else [0,0,0,1]
+            self.e.pose_input(1000,[0,0,.3],q,'odom','base_link',10)
+            floor=[[x,y,0.] for x in np.arange(-3,3,.05) for y in np.arange(-3,3,.05)]
+            walls=[[x,y,.4] for x in np.arange(-3,3,.05) for y in (-.55,.55)]
+            if rotated:walls=[[y,x,z] for x,y,z in walls]
+            self.e.cloud_input(1000,np.asarray(floor+walls),'odom',10,.05)
+            self.e.set_goal([0,2.] if rotated else [2.,0],'odom')
+            result=self.e.snapshot(10)
+            self.assertTrue(result['path'],result['reason'])
+
     def test_astar_does_not_cut_diagonal_corners(self):
         blocked=np.array([[False,True],[True,False]])
         route,reason=astar(blocked,(0,0),(1,1),.1)
