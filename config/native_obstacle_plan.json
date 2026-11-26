@@ -1,0 +1,22 @@
+{
+  "fixed_frame": "odom",
+  "body_frame": "base_link",
+  "topics": {"cloud": "/go2/native/voxel_decoded"},
+  "floor_z_m": null,
+  "floor_exclusion_m": 0.08,
+  "robot_envelope_height_m": 0.75,
+  "robot_radius_m": 0.45,
+  "collision_margin_m": 0.05,
+  "voxel_size_m": 0.1,
+  "grid_resolution_m": 0.1,
+  "preview_radius_m": 4.0,
+  "input_timeout_s": 1.0,
+  "pose_timeout_s": 0.5,
+  "max_pair_skew_s": 0.5,
+  "planning_budget_s": 0.055,
+  "goal_distance_m": 2.0,
+  "candidate_max_speed_mps": 0.1,
+  "candidate_max_yaw_rps": 0.3,
+  "direction_timeout_s": 0.5,
+  "note": "PATH PREVIEW ONLY. Click a real floor point to declare a fixed flat test area centered at the current native pose. Nonoccupied cells are ASSUMED usable, not verified free. No terrain slope, height fitting, step or support analysis. Fixed floor exclusion and body collision envelope remain necessary. Stock/body/head geometry and native base datum not physically accepted. Obstacles persist until area reset or restart; absent voxels do not clear them. No actuator or cmd_vel publisher."
+}

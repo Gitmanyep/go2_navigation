@@ -1,0 +1,67 @@
+Panels:
+- Class: rviz/Displays
+  Name: Displays
+Visualization Manager:
+  Class: ''
+  Global Options:
+    Fixed Frame: odom
+    Background Color: 20; 20; 24
+    Frame Rate: 5
+  Displays:
+  - Class: rviz/Grid
+    Name: Reference
+    Enabled: true
+    Cell Size: 1
+  - Class: rviz/Marker
+    Name: Native App voxels - HEIGHT COLOR ONLY
+    Enabled: true
+    Marker Topic: /go2/native/voxel_cubes
+    Queue Size: 1
+  - Class: rviz/Pose
+    Name: Native robot pose
+    Enabled: true
+    Topic: /go2/native/pose
+    Shape: Axes
+  - Class: rviz/Marker
+    Name: 'Flat test area: BLUE ASSUMED, RED COLLISION'
+    Enabled: true
+    Marker Topic: /go2/obstacle_preview/map
+  - Class: rviz/Marker
+    Name: Obstacle path preview status
+    Enabled: true
+    Marker Topic: /go2/obstacle_preview/label
+  - Class: rviz/Marker
+    Name: Requested goal
+    Enabled: true
+    Marker Topic: /go2/obstacle_preview/goal
+  - Class: rviz/Path
+    Name: Obstacle-only planned route (NO CONTROL)
+    Enabled: true
+    Topic: /go2/obstacle_preview/path
+    Color: 0; 255; 255
+    Line Style: Billboards
+    Line Width: 0.05
+    Buffer Length: 1
+  Views:
+    Current:
+      Class: rviz/ThirdPersonFollower
+      Target Frame: base_link
+      Distance: 5
+      Pitch: 0.55
+      Yaw: 3.14159265
+      Focal Point:
+        X: 1.0
+        Y: 0.0
+        Z: 0.0
+  Tools:
+  - Class: rviz/Interact
+  - Class: rviz/MoveCamera
+  - Class: rviz/Select
+  - Class: rviz/PublishPoint
+    Single click: true
+    Topic: /go2/obstacle_preview/floor_input
+  - Class: rviz/SetGoal
+    Topic: /go2/obstacle_preview/goal_input
+Window Geometry:
+  Width: 1200
+  Height: 760
