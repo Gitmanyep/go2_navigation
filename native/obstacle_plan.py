@@ -102,6 +102,7 @@ class ObstaclePreview:
         self.last_error = None
         self.restart_required = False
         self.voxel_size = self.s['voxel_size_m']
+        self.voxel_size_verified = False
         self.received_points = self.filtered_floor_points = self.out_of_envelope_points = 0
         self.compute_samples = deque(maxlen=200)
 
@@ -175,7 +176,11 @@ class ObstaclePreview:
                     raise ValueError('invalid_voxel_size')
                 # A size change changes the swept volume; keep the larger size
                 # for old obstacle cells too until an explicit test-area reset.
-                self.voxel_size = max(self.voxel_size, float(voxel_size))
+                if not self.voxel_size_verified and not self.obstacles:
+                    self.voxel_size = float(voxel_size)
+                    self.voxel_size_verified = True
+                else:
+                    self.voxel_size = max(self.voxel_size, float(voxel_size))
             self.voxel_clock.observe(stamp, frame, mono)
             self.source_stamp = stamp
             self.received_points = len(a)

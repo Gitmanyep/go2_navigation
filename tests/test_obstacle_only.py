@@ -130,6 +130,15 @@ class ObstacleOnlyTests(unittest.TestCase):
         snap=self.e.snapshot(10.1)
         self.assertFalse(snap['valid']);self.assertEqual(snap['candidate'],[0.,0.])
 
+    def test_first_verified_voxel_size_overrides_conservative_fallback(self):
+        self.pose()
+        self.assertTrue(self.cloud([[0.3,0.,.025]],size=.05))
+        self.assertEqual(self.e.voxel_size,.05)
+        self.assertEqual(len(self.e.obstacles),0)
+        self.pose(1000.1,10.1)
+        self.assertTrue(self.cloud([[1.,0.,.4]],1000.1,10.1,size=.05))
+        self.assertGreater(len(self.e.obstacles),0)
+
     def test_astar_does_not_cut_diagonal_corners(self):
         blocked=np.array([[False,True],[True,False]])
         route,reason=astar(blocked,(0,0),(1,1),.1)
