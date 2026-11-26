@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import unittest
 import numpy as np
-from native.obstacle_plan import ObstaclePreview, astar, route_diagnostics
+from native.obstacle_plan import ObstaclePreview, astar, route_diagnostics, reachable_direction_goal
 ROOT=Path(__file__).resolve().parents[1]
 
 
@@ -226,9 +226,25 @@ class ObstacleOnlyTests(unittest.TestCase):
         e.cloud_input(1000,np.empty((0,3)),'odom',10,.05)
         e.set_direction([1,0,0],10)
         snap=e.snapshot(10)
-        np.testing.assert_allclose(snap['goal'],[.2,3.7],atol=1e-8)
+        np.testing.assert_allclose(snap['desired_goal'],[.2,3.7],atol=1e-8)
         self.assertFalse(snap['path']);self.assertEqual(snap['candidate'],[0.,0.])
-        self.assertEqual(snap['route_diagnostic']['goal_type'],'unknown')
+        self.assertIsNone(snap['goal'])
+        self.assertEqual(snap['reason'],'no_reachable_forward_goal')
+
+    def test_fallback_avoids_unknown_and_blocked_and_makes_progress(self):
+        grid=np.full((21,61),-1,np.int8)
+        grid[8:13,0:27]=0
+        start=(2,10);origin=np.array([-.25,-1.05]);pos=np.array([0.,0.]);axis=np.array([1.,0.])
+        route,goal,reason=reachable_direction_goal(grid,start,origin,.1,pos,axis,4.,.3)
+        self.assertEqual(reason,'obstacle_only_path_preview')
+        self.assertGreater(goal[0],20)
+        self.assertTrue(all(grid[y,x]==0 for x,y in route))
+        grid[:,15]=100
+        route,goal,_=reachable_direction_goal(grid,start,origin,.1,pos,axis,4.,.3)
+        self.assertLess(goal[0],15)
+        grid[:]= -1;grid[10,2]=0
+        route,goal,reason=reachable_direction_goal(grid,start,origin,.1,pos,axis,4.,.3)
+        self.assertEqual(reason,'no_reachable_forward_goal');self.assertIsNone(goal)
 
     def test_direction_horizon_cannot_touch_inflated_map_boundary(self):
         self.s.update(goal_distance_m=4.,preview_radius_m=4.)

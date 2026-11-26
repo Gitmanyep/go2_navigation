@@ -68,6 +68,33 @@ def astar(blocked, start, goal, budget_s):
     return [], 'no_collision_free_route'
 
 
+def reachable_direction_goal(grid, start, origin, resolution, position, axis, horizon, budget_s):
+    """Pick a reachable observed cell near the desired direction; never relax unknown."""
+    h,w=grid.shape
+    def free(c):return 0<=c[0]<w and 0<=c[1]<h and grid[c[1],c[0]]==0
+    if not free(start):return [],None,'start_in_collision_or_outside_test_area'
+    deadline=time.monotonic()+budget_s
+    queue=deque([start]);parent={start:None};best=None;best_score=None
+    while queue:
+        if time.monotonic()>deadline:return [],None,'planning_timeout'
+        c=queue.popleft()
+        point=origin+(np.asarray(c)+.5)*resolution
+        delta=point-position;progress=float(np.dot(delta,axis))
+        lateral=abs(float(delta[0]*axis[1]-delta[1]*axis[0]))
+        if .3<=progress<=horizon and np.linalg.norm(delta)<=horizon and lateral<=max(.5,progress*.5):
+            score=(progress-lateral,progress,-lateral)
+            if best_score is None or score>best_score:best,best_score=c,score
+        x,y=c
+        for dx,dy in ((1,0),(-1,0),(0,1),(0,-1),(1,1),(1,-1),(-1,1),(-1,-1)):
+            n=(x+dx,y+dy)
+            if n not in parent and free(n) and free((x+dx,y)) and free((x,y+dy)):
+                parent[n]=c;queue.append(n)
+    if best is None:return [],None,'no_reachable_forward_goal'
+    route=[];c=best
+    while c is not None:route.append(c);c=parent[c]
+    return route[::-1],best,'obstacle_only_path_preview'
+
+
 def route_diagnostics(grid, start, goal, origin, resolution):
     """Explain a failed search; relaxed searches are diagnostic only, never commands."""
     h,w=grid.shape
@@ -343,6 +370,19 @@ class ObstaclePreview:
         out['goal'] = target.tolist()
         start, goal = [tuple(np.floor((p-origin)/res).astype(int)) for p in (pos[:2],target)]
         route, reason = astar((grid!=0), start, goal, self.s['planning_budget_s'])
+        if self.direction is not None:
+            out['desired_goal'] = target.tolist()
+            out['goal_selection'] = 'desired'
+            if not route and reason != 'planning_timeout':
+                route, local_goal, reason = reachable_direction_goal(
+                    grid,start,origin,res,pos[:2],axis/norm,self.s['goal_distance_m'],self.s['planning_budget_s'])
+                if local_goal is not None:
+                    goal=local_goal
+                    out['goal']=(origin+(np.asarray(goal)+.5)*res).tolist()
+                    out['goal_selection']='reachable_local'
+                else:
+                    out['goal']=None
+                    out['goal_selection']='none'
         if route:
             path = [list(origin+(np.asarray(c)+.5)*res)+[self.floor_z+self.voxel_size*.5+.04] for c in route]
             out['path'] = path
