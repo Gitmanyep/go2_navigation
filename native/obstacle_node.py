@@ -28,7 +28,7 @@ def main():
     rospy.init_node('go2_obstacle_only_path_preview')
     prefix='/go2/obstacle_preview/'
     pubs={k:rospy.Publisher(prefix+k,cls,queue_size=1) for k,cls in [
-        ('path',NavPath),('candidate_velocity',TwistStamped),('map',Marker),('label',Marker),('goal',Marker),('status',String)]}
+        ('path',NavPath),('candidate_velocity',TwistStamped),('map',Marker),('label',Marker),('goal',Marker),('footprint',Marker),('status',String)]}
     lock=threading.Lock();latest={};events=deque(maxlen=20);metadata={};drops={}
     a.output.mkdir(parents=True,exist_ok=True)
     (a.output/'obstacle_settings.json').write_text(json.dumps(settings,indent=2)+'\n')
@@ -136,6 +136,18 @@ def main():
             if goal.action==Marker.ADD:
                 goal.pose.position.x,goal.pose.position.y=snap['goal'];goal.pose.position.z=snap['floor_z']+.08
             pubs['goal'].publish(goal)
+            footprint=Marker(header=header,ns='assumed_safe_start_footprint',type=Marker.LINE_STRIP)
+            footprint.pose.orientation.w=1.;footprint.scale.x=.025;footprint.color.g=footprint.color.a=1.
+            footprint.action=Marker.DELETE
+            if snap['pose'] and snap['floor_z'] is not None:
+                from scipy.spatial.transform import Rotation
+                rotation=Rotation.from_quat(snap['pose']['quaternion']).as_matrix()[:2,:2]
+                length=settings.get('robot_length_m',.67)/2;width=settings.get('robot_width_m',.36)/2
+                for xy in ((length,width),(length,-width),(-length,-width),(-length,width),(length,width)):
+                    pt=rotation@np.asarray(xy)+snap['pose']['position'][:2]
+                    footprint.points.append(Point(pt[0],pt[1],snap['floor_z']+.12))
+                footprint.action=Marker.ADD
+            pubs['footprint'].publish(footprint)
             status={k:v for k,v in snap.items() if k not in ('grid','pose','origin','path')}
             status.update(path_points=len(snap['path']),input_error=last_input_error,queue_drops=dropped,
                           received_voxels=engine.received_points,excluded_floor_voxels=engine.filtered_floor_points,

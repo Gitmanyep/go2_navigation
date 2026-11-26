@@ -11,6 +11,7 @@ class ObstacleOnlyTests(unittest.TestCase):
     def setUp(self):
         self.s=json.loads((ROOT/'config/native_obstacle_plan.json').read_text())
         self.s['floor_z_m']=0.
+        self.s.update(footprint_shape='circle',start_assumed_safe=False,use_latest_voxel_snapshot=False,reset_map_on_pose_change=False)
         self.s['floor_exclusion_m']=.08
         self.s['preview_assumed_self_radius_m']=0.
         self.s['planning_budget_s']=.3
@@ -149,6 +150,20 @@ class ObstacleOnlyTests(unittest.TestCase):
         self.assertFalse(s['traversability_suitable_for_control'])
         self.assertEqual(len(self.e.obstacles),1)
         self.assertGreater(max(abs(p[1]) for p in s['path']),.5)
+
+    def test_rectangle_current_snapshot_and_manual_start(self):
+        self.s.update(footprint_shape='rectangle',start_assumed_safe=True,use_latest_voxel_snapshot=True,reset_map_on_pose_change=True)
+        self.e=ObstaclePreview(self.s)
+        self.pose();self.cloud([[0,0,.4],[1,0,.4]])
+        snap=self.e.snapshot(10.)
+        start=np.floor((np.array([0,0])-snap['origin'])/snap['resolution']).astype(int)
+        self.assertEqual(snap['grid'][start[1],start[0]],0)
+        self.assertTrue(snap['start_assumed_safe']);self.assertFalse(snap['traversability_suitable_for_control'])
+        self.pose(1000.1,10.1);self.cloud([[0,0,0],[1,0,0]],1000.1,10.1)
+        self.assertEqual(len(self.e.obstacles),0)
+        self.assertTrue((self.e.snapshot(10.1)['grid']==-1).any())
+        self.assertTrue(self.pose(1000.2,10.2,(.3,0,.3)))
+        self.assertFalse(self.e.snapshot(10.2)['valid'])
 
     def test_astar_does_not_cut_diagonal_corners(self):
         blocked=np.array([[False,True],[True,False]])

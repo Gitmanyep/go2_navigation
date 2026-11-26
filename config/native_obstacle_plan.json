@@ -20,6 +20,12 @@
   "candidate_max_speed_mps": 0.1,
   "candidate_max_yaw_rps": 0.3,
   "direction_timeout_s": 0.5,
-  "note": "PATH PREVIEW ONLY. Click a real floor point to declare a fixed flat test area centered at the current native pose. Nonoccupied cells are ASSUMED usable, not verified free. No terrain slope, height fitting, step or support analysis. Fixed floor exclusion and body collision envelope remain necessary. Stock/body/head geometry and native base datum not physically accepted. Obstacles persist until area reset or restart; absent voxels do not clear them. No actuator or cmd_vel publisher. Preview-only flat-ground assumption: below 0.20m omitted; 0.5m around robot masked as presumed self. These blind areas are unverified and never authorize control.",
-  "preview_assumed_self_radius_m": 0.5
+  "note": "Preview only. Operator declares start safe. Fixed-current-heading 0.67x0.36m rectangle; native base-to-envelope center unverified. Latest occupied snapshot replaces old obstacles; cells missing current observations remain unknown. No motor output. Registered odom voxels are not rotated again for inverted lidar.",
+  "preview_assumed_self_radius_m": 0.0,
+  "footprint_shape": "rectangle",
+  "robot_length_m": 0.67,
+  "robot_width_m": 0.36,
+  "start_assumed_safe": true,
+  "use_latest_voxel_snapshot": true,
+  "reset_map_on_pose_change": true
 }

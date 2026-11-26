@@ -8,7 +8,7 @@ import heapq
 import math
 import time
 import numpy as np
-from scipy.ndimage import distance_transform_edt
+from scipy.ndimage import distance_transform_edt, binary_dilation
 from scipy.spatial.transform import Rotation
 
 class StreamLease:
@@ -79,6 +79,10 @@ def settings_check(s):
         raise ValueError('unsupported_preview_grid')
     if s['floor_exclusion_m'] >= s['robot_envelope_height_m'] or s['robot_radius_m'] >= s['preview_radius_m']:
         raise ValueError('invalid_preview_geometry')
+    if s.get('footprint_shape')=='rectangle':
+        for k in ('robot_length_m','robot_width_m'):
+            if type(s.get(k)) not in (int,float) or not math.isfinite(s[k]) or not 0<s[k]<2:
+                raise ValueError('invalid_rectangle_geometry:'+k)
     if s['fixed_frame'] != 'odom' or s['body_frame'] != 'base_link':
         raise ValueError('native_frame_contract_required')
     if s.get('floor_z_m') is not None and not math.isfinite(s['floor_z_m']):
@@ -105,6 +109,7 @@ class ObstaclePreview:
         self.voxel_size_verified = False
         self.received_points = self.filtered_floor_points = self.out_of_envelope_points = 0
         self.compute_samples = deque(maxlen=200)
+        self.coverage = set()
 
     def set_floor(self, z, frame, centre=None):
         if frame != self.s['fixed_frame'] or not math.isfinite(z):
@@ -145,14 +150,16 @@ class ObstaclePreview:
             if p.shape != (3,) or q.shape != (4,) or not np.isfinite(p).all() or not np.isfinite(q).all() or abs(np.linalg.norm(q)-1.) > .01:
                 raise ValueError('invalid_odometry')
             self.pose_clock.observe(stamp, frame, mono)
-            if self.pose and np.linalg.norm(p-self.pose['position']) > 1.:
-                self.restart_required = True
-                self.obstacles.clear()
-                raise ValueError('pose_jump_restart_required')
-            if self.floor_pose is not None and np.linalg.norm(p-self.floor_pose) > .25:
-                self.restart_required = True
-                self.obstacles.clear()
-                raise ValueError('test_area_pose_changed_reset_required')
+            jump = self.pose is not None and np.linalg.norm(p-self.pose['position']) > 1.
+            moved = self.floor_pose is not None and np.linalg.norm(p-self.floor_pose) > .25
+            if jump or moved:
+                self.obstacles.clear(); self.coverage.clear()
+                if self.s.get('reset_map_on_pose_change',False):
+                    self.area_centre=p[:2].copy();self.floor_pose=p.copy()
+                    self.voxel_clock.invalidate()
+                else:
+                    self.restart_required=True
+                    raise ValueError('pose_jump_restart_required')
             self.pose = dict(stamp=stamp, position=p.copy(), quaternion=q.copy())
             if self.floor_z is not None and self.area_centre is None:
                 self.area_centre = p[:2].copy()
@@ -203,7 +210,12 @@ class ObstaclePreview:
             cells = np.floor(a[use,:2]/self.s['grid_resolution_m']).astype(int)
             # A missing occupied voxel does not prove the volume was cleared.
             # Retain obstacles for this declared flat test until the user resets.
-            self.obstacles.update(map(tuple, cells))
+            if self.s.get('use_latest_voxel_snapshot',False):
+                self.obstacles = set(map(tuple,cells))
+                covered = a[np.linalg.norm(a[:,:2]-self.area_centre,axis=1)<=self.s['preview_radius_m'],:2]
+                self.coverage = set(map(tuple,np.floor(covered/self.s['grid_resolution_m']).astype(int)))
+            else:
+                self.obstacles.update(map(tuple, cells))
             self.last_error = None
             return True
         except ValueError as exc:
@@ -223,7 +235,8 @@ class ObstaclePreview:
                    pose=self.pose, obstacle_cells=len(self.obstacles), assumption='flat_test_area_unoccupied_is_assumed_usable',
                    terrain_analysis_enabled=False, free_space_verified=False, traversability_suitable_for_control=False,
                    assumed_self_mask_radius_m=self.s.get('preview_assumed_self_radius_m',0.),
-                   motion_commands_sent=0)
+                   motion_commands_sent=0, start_assumed_safe=self.s.get('start_assumed_safe',False),
+                   footprint_shape=self.s.get('footprint_shape','circle'), body_reference_verified=False)
         if self.restart_required or self.voxel_clock.restart_required or self.pose_clock.restart_required:
             out['reason'] = 'source_or_pose_jump_restart_required'; return out
         if not self.pose_clock.valid(mono) or not self.voxel_clock.valid(mono):
@@ -246,7 +259,27 @@ class ObstaclePreview:
         clearance = distance_transform_edt(np.pad(~occupied_or_outside,1))[1:-1,1:-1]*res
         margin = self.s['robot_radius_m']+self.s['collision_margin_m']+(self.voxel_size+res)*math.sqrt(.5)
         blocked = clearance <= margin
+        if self.s.get('footprint_shape')=='rectangle':
+            yaw=Rotation.from_quat(self.pose['quaternion']).as_euler('xyz')[2]
+            extra=self.s['collision_margin_m']+(self.voxel_size+res)*math.sqrt(.5)
+            length=self.s['robot_length_m']/2+extra; width=self.s['robot_width_m']/2+extra
+            k=int(math.ceil(math.hypot(length,width)/res))
+            ky,kx=np.mgrid[-k:k+1,-k:k+1]
+            bx=(kx*math.cos(yaw)+ky*math.sin(yaw))*res
+            by=(-kx*math.sin(yaw)+ky*math.cos(yaw))*res
+            kernel=(abs(bx)<=length)&(abs(by)<=width)
+            blocked=binary_dilation(occupied_or_outside,structure=kernel,border_value=1)
         grid[inside] = np.where(obstacle[inside],100,np.where(blocked[inside],50,0)).astype(np.int8)
+        if self.s.get('use_latest_voxel_snapshot',False):
+            observed=np.zeros_like(inside)
+            if self.coverage:
+                cc=np.floor(((np.asarray(list(self.coverage))+.5)*res-origin)/res).astype(int)
+                ok=(cc>=0).all(axis=1)&(cc<n).all(axis=1)
+                observed[cc[ok,1],cc[ok,0]]=True
+            grid[inside & ~observed & ~blocked]=-1
+        if self.s.get('start_assumed_safe',False):
+            start_cell=np.floor((pos[:2]-origin)/res).astype(int)
+            if (start_cell>=0).all() and (start_cell<n).all():grid[start_cell[1],start_cell[0]]=0
         out.update(valid=True, reason='waiting_for_goal', grid=grid,
                    assumed_usable_cells=int(np.sum(grid==0)), blocked_cells=int(np.sum(grid>=50)), observed_obstacle_cells=int(np.sum(grid==100)), inflated_cells=int(np.sum(grid==50)),
                    footprint_inflation_m=margin)

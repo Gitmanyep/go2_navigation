@@ -42,6 +42,10 @@ Visualization Manager:
     Line Style: Billboards
     Line Width: 0.05
     Buffer Length: 1
+  - Class: rviz/Marker
+    Name: Provisional body footprint - operator safe start
+    Enabled: true
+    Marker Topic: /go2/obstacle_preview/footprint
   Views:
     Current:
       Class: rviz/ThirdPersonFollower
