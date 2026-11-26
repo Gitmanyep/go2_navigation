@@ -227,7 +227,7 @@ class ObstaclePreview:
         res, radius = self.s['grid_resolution_m'], self.s['preview_radius_m']
         n = 2*math.ceil(radius/res)+1
         pos = self.pose['position'] if self.pose else np.zeros(3)
-        origin = np.floor(pos[:2]/res)*res-(n//2+.5)*res
+        origin = np.floor(pos[:2]/res)*res-(n//2)*res
         grid = np.full((n,n), -1, np.int8)
         out = dict(valid=False, reason=self.last_error or 'waiting_for_native_inputs', frame=self.s['fixed_frame'],
                    source_stamp=self.source_stamp, origin=origin, resolution=res, grid=grid,
